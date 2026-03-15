@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -21,12 +22,14 @@ import { useGetProfileQuery, useUpdateProfileMutation, useLogoutMutation } from 
 import { logout, updateUser } from '@/store/slices/authSlice';
 import { removeSecureItem } from '@/utils/secureStorage';
 import { TOKEN_KEY } from '@/api/axiosInstance';
+import { ROUTES } from '@/constants/routes';
 
 const DEFAULT_AVATAR = 'https://via.placeholder.com/120?text=Avatar';
 const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
 
 export const ProfileScreen = () => {
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, { skip: false });
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation();
   const [logoutApi] = useLogoutMutation();
@@ -181,6 +184,15 @@ export const ProfileScreen = () => {
           containerStyle={styles.input}
         />
 
+        <TouchableOpacity
+          style={styles.menuRow}
+          onPress={() => navigation.navigate(ROUTES.PAYMENT_HISTORY as never)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.menuRowText}>Lịch sử thanh toán</Text>
+          <Text style={styles.menuRowArrow}>›</Text>
+        </TouchableOpacity>
+
         {biometricAvailable && (
           <TouchableOpacity
             style={styles.checkRow}
@@ -280,5 +292,23 @@ const styles = StyleSheet.create({
   checkLabel: {
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.textSecondary,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING[4],
+    paddingHorizontal: SPACING[2],
+    marginBottom: SPACING[2],
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+  },
+  menuRowText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.textPrimary,
+  },
+  menuRowArrow: {
+    fontSize: 20,
+    color: COLORS.gray400,
   },
 });
