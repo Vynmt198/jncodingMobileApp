@@ -193,6 +193,54 @@ export interface Certificate {
   verificationUrl?: string | null;
 }
 
+// GET /api/enrollments — my enrollments with course + progress
+export interface EnrollmentCoursePopulated {
+  _id: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  price?: number;
+  instructorId?: string;
+}
+
+export interface MyEnrollmentItem {
+  _id: string;
+  userId: string;
+  courseId: EnrollmentCoursePopulated;
+  status: 'pending' | 'active' | 'cancelled' | 'completed';
+  progress: number;
+  completedLessons: number;
+  totalLessons: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MyEnrollmentsResponse {
+  enrollments: MyEnrollmentItem[];
+}
+
+// GET /api/payments/history
+export type PaymentStatus = 'pending' | 'success' | 'failed' | 'cancelled';
+
+export interface PaymentHistoryItem {
+  _id: string;
+  userId: string;
+  courseId?: string | null;
+  orderId: string;
+  amount: number;
+  orderInfo: string;
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PaymentHistoryResponse {
+  payments: PaymentHistoryItem[];
+  totalPages: number;
+  currentPage: number;
+  total: number;
+}
+
 // GET /api/courses/:id/learn
 export interface CourseLearningData {
   course: { _id: string; title: string; instructorId: string | null };

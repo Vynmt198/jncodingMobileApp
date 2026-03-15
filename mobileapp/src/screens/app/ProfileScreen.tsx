@@ -12,21 +12,24 @@ import {
   Platform,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Button, Input } from '@/components/ui';
 import { useGetProfileQuery, useUpdateProfileMutation, useLogoutMutation } from '@/store/api/authApi';
-import { logout, updateUser } from '@/store/slices/authSlice';
+import { logout, updateUser, setPendingAuthRoute } from '@/store/slices/authSlice';
 import { removeSecureItem } from '@/utils/secureStorage';
 import { TOKEN_KEY } from '@/api/axiosInstance';
+import { ROUTES } from '@/constants/routes';
 
 const DEFAULT_AVATAR = 'https://via.placeholder.com/120?text=Avatar';
 const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
 
 export const ProfileScreen = () => {
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, { skip: false });
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation();
   const [logoutApi] = useLogoutMutation();
@@ -51,6 +54,17 @@ export const ProfileScreen = () => {
       setAvatarUri(user.avatar ?? null);
     }
   }, [user]);
+
+  // Token hết hạn (401) → tự đăng xuất và chuyển về màn Login
+  React.useEffect(() => {
+    if (!profileError) return;
+    const status = (profileError as { status?: number })?.status;
+    if (status === 401) {
+      dispatch(setPendingAuthRoute('Login'));
+      dispatch(logout());
+      void removeSecureItem(TOKEN_KEY);
+    }
+  }, [profileError, dispatch]);
 
   const pickImage = async (source: 'camera' | 'library') => {
     try {
@@ -103,23 +117,26 @@ export const ProfileScreen = () => {
     }
   };
 
+  const performLogout = () => {
+    dispatch(setPendingAuthRoute('Login'));
+    dispatch(logout());
+    void removeSecureItem(TOKEN_KEY);
+    logoutApi().catch(() => {});
+  };
+
   const handleLogout = () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Đăng xuất',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await logoutApi().unwrap();
-          } catch {
-            // ignore
-          }
-          await removeSecureItem(TOKEN_KEY);
-          dispatch(logout());
+    Alert.alert(
+      'Đăng xuất',
+      'Đăng xuất để đăng nhập bằng tài khoản hoặc vai trò khác.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: () => setTimeout(performLogout, 0),
         },
-      },
-    ]);
+      ]
+    );
   };
 
   if (loadingProfile && !user && !profileError) {
@@ -134,7 +151,10 @@ export const ProfileScreen = () => {
     return (
       <View style={styles.centered}>
         <Text style={styles.title}>Không thể tải hồ sơ</Text>
-        <Button title="Đăng xuất" onPress={handleLogout} variant="outline" style={{ marginTop: SPACING[4] }} />
+        <Text style={styles.errorHint}>
+          Token có thể hết hạn hoặc mất kết nối. Đăng xuất để đăng nhập lại.
+        </Text>
+        <Button title="Đăng xuất và về đăng nhập" onPress={handleLogout} variant="outline" style={{ marginTop: SPACING[4] }} />
       </View>
     );
   }
@@ -181,6 +201,30 @@ export const ProfileScreen = () => {
           containerStyle={styles.input}
         />
 
+        <TouchableOpacity
+          style={[styles.menuRow, styles.paymentHistoryRow]}
+          onPress={() => navigation.navigate(ROUTES.PAYMENT_HISTORY as never)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.paymentHistoryRowText}> Lịch sử thanh toán</Text>
+          <Text style={styles.paymentHistoryRowArrow}>›</Text>
+        </TouchableOpacity>
+        <Button
+          title={updating ? 'Đang lưu...' : 'Lưu thay đổi'}
+          onPress={handleSave}
+          loading={updating}
+          disabled={updating}
+          style={styles.saveBtn}
+        />
+        <TouchableOpacity
+          style={[styles.menuRow, styles.logoutRow]}
+          onPress={performLogout}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.logoutRowText}>Đăng xuất và đổi tài khoản</Text>
+          <Text style={styles.menuRowArrow}>›</Text>
+        </TouchableOpacity>
+       
         {biometricAvailable && (
           <TouchableOpacity
             style={styles.checkRow}
@@ -198,14 +242,8 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         )}
 
-        <Button
-          title={updating ? 'Đang lưu...' : 'Lưu thay đổi'}
-          onPress={handleSave}
-          loading={updating}
-          disabled={updating}
-          style={styles.saveBtn}
-        />
-        <Button title="Đăng xuất" onPress={handleLogout} variant="outline" />
+        
+        
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -231,6 +269,13 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h2,
     color: COLORS.textPrimary,
     marginBottom: SPACING[6],
+  },
+  errorHint: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: SPACING[6],
+    marginBottom: SPACING[4],
   },
   avatarSection: {
     alignItems: 'center',
@@ -280,5 +325,51 @@ const styles = StyleSheet.create({
   checkLabel: {
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.textSecondary,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING[4],
+    paddingHorizontal: SPACING[2],
+    marginBottom: SPACING[2],
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+  },
+  menuRowText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.textPrimary,
+  },
+  paymentHistoryRow: {
+    backgroundColor: COLORS.primaryLight + '20',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '50',
+    marginBottom: SPACING[4],
+    paddingVertical: SPACING[5],
+  },
+  paymentHistoryRowText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.primaryDark,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  paymentHistoryRowArrow: {
+    fontSize: 22,
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  logoutRow: {
+    marginTop: SPACING[2],
+    borderWidth: 1,
+    borderColor: COLORS.error + '40',
+  },
+  logoutRowText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.error,
+    fontWeight: '600',
+  },
+  menuRowArrow: {
+    fontSize: 20,
+    color: COLORS.gray400,
   },
 });

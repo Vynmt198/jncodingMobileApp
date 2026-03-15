@@ -98,6 +98,61 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Trang kết quả thanh toán VNPay (dùng khi redirect từ VNPay — không phụ thuộc web app localhost:5173)
+app.get('/payment-result', (req, res) => {
+    const status = req.query.status || (req.query.vnp_ResponseCode === '00' ? 'success' : 'failed');
+    const message = req.query.message || (status === 'success' ? 'Thanh toán thành công.' : 'Giao dịch chưa thành công.');
+    const orderId = (req.query.vnp_TxnRef || req.query.orderId || '').toString();
+    const isSuccess = status === 'success';
+    // Deep link mở app (scheme myapp trong app.json) — app sẽ mở màn PaymentSuccess với orderId
+    const deepLink = orderId ? `myapp://payment-success/${encodeURIComponent(orderId)}` : 'myapp://';
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kết quả thanh toán</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f3f4f6; }
+    .card { background: #fff; border-radius: 16px; padding: 32px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 1.35rem; margin: 0 0 8px; color: #111827; }
+    p { margin: 0 0 24px; color: #6b7280; font-size: 0.95rem; line-height: 1.5; }
+    .order { font-size: 0.85rem; color: #9ca3af; margin-bottom: 24px; }
+    .btn { display: inline-block; padding: 12px 24px; background: #4f46e5; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.95rem; margin: 4px; }
+    .btn:focus { outline: none; }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+    .success .icon { color: #10b981; }
+    .failed .icon { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="card ${isSuccess ? 'success' : 'failed'}">
+    <div class="icon">${isSuccess ? '✓' : '✕'}</div>
+    <h1>${isSuccess ? 'Thanh toán thành công' : 'Thanh toán chưa thành công'}</h1>
+    <p>${message}</p>
+    ${orderId ? `<div class="order">Mã đơn: ${orderId}</div>` : ''}
+    <p style="margin-bottom:16px;font-size:0.9rem;">Bấm nút bên dưới để mở ứng dụng và xem khóa học.</p>
+    <a href="${deepLink}" class="btn" id="openApp">Quay lại app</a>
+    <a href="#" onclick="window.close(); return false;" class="btn btn-secondary">Đóng trang</a>
+  </div>
+  <script>
+    (function() {
+      var openApp = document.getElementById('openApp');
+      if (openApp && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        openApp.click();
+        setTimeout(function() { window.close(); }, 500);
+      }
+    })();
+  </script>
+</body>
+</html>
+    `);
+});
+
 app.use((req, res) => {
     res.status(404).json({
         success: false,
