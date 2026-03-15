@@ -1,0 +1,547 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, StatusBar, Platform } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
+import { ROUTES } from '@/constants/routes';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useGetProfileQuery } from '@/store/api/authApi';
+import { useGetMyEnrollmentsQuery } from '@/store/api/enrollmentApi';
+
+// Base URL for the local backend
+const API_URL = 'http://localhost:3000/api';
+
+export const HomeScreen = () => {
+  const navigation = useNavigation<any>();
+  const { data: user } = useGetProfileQuery();
+  const { data: enrollments } = useGetMyEnrollmentsQuery();
+  const [categories, setCategories] = useState<any[]>([]);
+  const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
+  const [trendingCourses, setTrendingCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchHomeData();
+  }, []);
+
+  const fetchHomeData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch Categories
+      const categoriesRes = await fetch(`${API_URL}/categories`);
+      const categoriesData = await categoriesRes.json();
+      if (categoriesData.success) {
+        setCategories(categoriesData.data);
+      }
+
+      // Fetch Featured Courses (Carousel)
+      const featuredRes = await fetch(`${API_URL}/courses?sortBy=popular&limit=5`);
+      const featuredData = await featuredRes.json();
+      if (featuredData.success) {
+        setFeaturedCourses(featuredData.data.courses);
+      }
+
+      // Fetch Trending Courses
+      const trendingRes = await fetch(`${API_URL}/courses?sortBy=newest&limit=4`);
+      const trendingData = await trendingRes.json();
+      if (trendingData.success) {
+        setTrendingCourses(trendingData.data.courses);
+      }
+
+    } catch (error) {
+      console.error('Error fetching home data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={COLORS.secondary} />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Premium Header */}
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.primaryLight]}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <View style={styles.userInfo}>
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarInitial}>{user?.fullName?.charAt(0) || 'U'}</Text>
+            </View>
+            <View style={styles.userTextContainer}>
+              <View style={styles.nameRow}>
+                <Text style={styles.greetingText}>Hello, {user?.fullName || 'Learner'}</Text>
+                <View style={styles.vipBadge}>
+                  <Text style={styles.vipText}>VIP</Text>
+                </View>
+              </View>
+              <Text style={styles.sloganText}>Discover your next premium course</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.notificationBtn}>
+            <Ionicons name="notifications-outline" size={24} color={COLORS.white} />
+            <View style={styles.notificationDot} />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.searchBar}
+          onPress={() => navigation.navigate(ROUTES.SEARCH as any)}
+        >
+          <Ionicons name="search-outline" size={20} color={COLORS.gray400} style={{ marginRight: SPACING[2] }} />
+          <Text style={styles.searchPlaceholder}>Search for luxury courses...</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+
+      {/* Categories Horizontal Scroll */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+          <TouchableOpacity onPress={() => navigation.navigate(ROUTES.CATEGORY)}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+          {categories.map((cat: any) => (
+            <TouchableOpacity
+              key={cat._id}
+              style={styles.categoryCard}
+              onPress={() => navigation.navigate(ROUTES.COURSE_LISTING, { categoryId: cat._id, categoryName: cat.name })}
+            >
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIconText}>{cat.name.charAt(0)}</Text>
+              </View>
+              <Text style={styles.categoryName} numberOfLines={1}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Featured Courses Carousel */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Featured Experience</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carouselScroll} pagingEnabled>
+          {featuredCourses.map((course: any) => (
+            <TouchableOpacity
+              key={course._id}
+              style={styles.featuredCard}
+              onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: course._id })}
+            >
+              <Image
+                source={{ uri: course.thumbnail || 'https://via.placeholder.com/300' }}
+                style={styles.featuredImage}
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.featuredOverlay}
+              >
+                <Text style={styles.featuredCategory}>{course.categoryId?.name}</Text>
+                <Text style={styles.featuredTitle} numberOfLines={2}>{course.title}</Text>
+                <View style={styles.featuredRow}>
+                  <Text style={styles.featuredInstructor}>{course.instructorId?.fullName}</Text>
+                  <Text style={[styles.featuredPrice, { color: COLORS.secondary }]}>
+                    {course.price === 0 ? 'Free' : `$${course.price}`}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Continue Learning - Dynamic Version */}
+      {enrollments && enrollments.length > 0 && (
+        <View style={styles.section}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: enrollments[0].courseId._id })}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[COLORS.primaryDark, COLORS.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.continueCard}
+            >
+              <View style={styles.continueHeader}>
+                <Text style={styles.continueTitle}>Resume Luxury Learning</Text>
+                <Ionicons name="chevron-forward-circle" size={24} color={COLORS.secondary} />
+              </View>
+              <Text style={styles.continueCourse} numberOfLines={1}>{enrollments[0].courseId.title}</Text>
+              <View style={styles.progressContainer}>
+                <View style={[styles.progressBar, { backgroundColor: COLORS.secondary, width: `${enrollments[0].progress}%` }]} />
+              </View>
+              <View style={styles.progressRow}>
+                <Text style={styles.progressText}>{enrollments[0].progress}% Complete</Text>
+                <Text style={styles.progressText}>{enrollments[0].completedLessons} / {enrollments[0].totalLessons} Lessons</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Trending Courses - Editorial List */}
+      <View style={[styles.section, { marginBottom: SPACING[10] * 2 }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Trending Now</Text>
+          <TouchableOpacity onPress={() => navigation.navigate(ROUTES.COURSE_LISTING as any)}>
+            <Text style={styles.seeAllText}>View Market</Text>
+          </TouchableOpacity>
+        </View>
+        {trendingCourses.map((course: any) => (
+          <TouchableOpacity
+            key={course._id}
+            style={styles.trendingCard}
+            onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: course._id })}
+          >
+            <Image
+              source={{ uri: course.thumbnail || 'https://via.placeholder.com/100' }}
+              style={styles.trendingImage}
+            />
+            <View style={styles.trendingInfo}>
+              <View>
+                <Text style={styles.trendingTitle} numberOfLines={2}>{course.title}</Text>
+                <Text style={styles.trendingInstructor}>{course.instructorId?.fullName}</Text>
+              </View>
+              <View style={styles.courseMeta}>
+                <View style={styles.ratingContainer}>
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <Ionicons
+                      key={i}
+                      name="star"
+                      size={12}
+                      color={i <= Math.round(course.averageRating) ? COLORS.secondary : COLORS.gray300}
+                    />
+                  ))}
+                  <Text style={styles.ratingText}>{course.averageRating}</Text>
+                </View>
+                <Text style={styles.priceText}>
+                  {course.price === 0 ? 'Free' : `$${course.price}`}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    padding: SPACING[6],
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING[6],
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.5)',
+  },
+  avatarInitial: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.secondary,
+    fontWeight: '800',
+  },
+  userTextContainer: {
+    marginLeft: SPACING[3],
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  greetingText: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.white,
+    fontWeight: '800',
+  },
+  vipBadge: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: SPACING[2],
+  },
+  vipText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+  sloganText: {
+    ...TYPOGRAPHY.caption,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.secondary,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)',
+    paddingHorizontal: SPACING[4],
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  searchPlaceholder: {
+    ...TYPOGRAPHY.bodySmall,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  section: {
+    marginTop: SPACING[8],
+    paddingHorizontal: SPACING[6],
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING[6],
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+  },
+  seeAllText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.secondaryDark,
+    fontWeight: '600',
+  },
+  categoryScroll: {
+    marginHorizontal: -SPACING[6],
+    paddingHorizontal: SPACING[6],
+  },
+  categoryCard: {
+    alignItems: 'center',
+    marginRight: SPACING[6],
+    width: 85,
+  },
+  categoryIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING[1],
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.gray100,
+  },
+  categoryIconText: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.primary,
+  },
+  categoryName: {
+    ...TYPOGRAPHY.caption,
+    textAlign: 'center',
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  carouselScroll: {
+    marginHorizontal: -SPACING[6],
+  },
+  featuredCard: {
+    width: 320,
+    height: 200,
+    marginLeft: SPACING[6],
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: COLORS.primary,
+  },
+  featuredImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  featuredOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: SPACING[6],
+    justifyContent: 'flex-end',
+  },
+  featuredCategory: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.secondary,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  featuredTitle: {
+    ...TYPOGRAPHY.h5,
+    color: COLORS.white,
+    marginBottom: 4,
+    fontWeight: '700',
+  },
+  featuredRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  featuredInstructor: {
+    ...TYPOGRAPHY.caption,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  featuredPrice: {
+    ...TYPOGRAPHY.label,
+    fontWeight: '700',
+  },
+  continueCard: {
+    padding: SPACING[8],
+    borderRadius: 24,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  continueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING[1],
+  },
+  continueTitle: {
+    ...TYPOGRAPHY.caption,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  continueCourse: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.white,
+    marginBottom: SPACING[6],
+  },
+  progressContainer: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    marginBottom: SPACING[1],
+  },
+  progressBar: {
+    width: '45%',
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressText: {
+    ...TYPOGRAPHY.caption,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600',
+  },
+  trendingCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: SPACING[4],
+    marginBottom: SPACING[6],
+    borderWidth: 1,
+    borderColor: COLORS.gray100,
+  },
+  trendingImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+  },
+  trendingInfo: {
+    flex: 1,
+    marginLeft: SPACING[4],
+    justifyContent: 'space-between',
+  },
+  trendingTitle: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+  },
+  trendingInstructor: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  courseMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.gray600,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  priceText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.primary,
+    fontWeight: '800',
+  },
+});

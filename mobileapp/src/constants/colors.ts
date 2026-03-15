@@ -1,13 +1,13 @@
 export const COLORS = {
-  // Primary palette
-  primary: '#4F46E5',      // Indigo
-  primaryLight: '#818CF8',
-  primaryDark: '#3730A3',
+  // Primary palette (Deep Navy Luxury)
+  primary: '#0B132B',      // Midnight Navy
+  primaryLight: '#1C2541', // Soft Navy
+  primaryDark: '#050A1A',  // Super Dark
 
-  // Secondary palette
-  secondary: '#EC4899',    // Pink
-  secondaryLight: '#F9A8D4',
-  secondaryDark: '#BE185D',
+  // Secondary palette (Champagne & Gold Accents)
+  secondary: '#D4AF37',    // Classic Gold
+  secondaryLight: '#F7E7CE', // Champagne
+  secondaryDark: '#AA8C2C',  // Deep Gold
 
   // Semantic colors
   success: '#10B981',
@@ -19,45 +19,46 @@ export const COLORS = {
   info: '#3B82F6',
   infoLight: '#DBEAFE',
 
-  // Neutral scale
+  // Neutral scale (Slightly warmer off-whites for luxury feel)
   white: '#FFFFFF',
-  black: '#000000',
-  gray50: '#F9FAFB',
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray300: '#D1D5DB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray600: '#4B5563',
-  gray700: '#374151',
-  gray800: '#1F2937',
-  gray900: '#111827',
+  black: '#0A0A0A',
+  gray50: '#FAFAFA',       // Luxurious Off-white
+  gray100: '#F4F4F5',
+  gray200: '#E4E4E7',
+  gray300: '#D4D4D8',
+  gray400: '#A1A1AA',
+  gray500: '#71717A',
+  gray600: '#52525B',
+  gray700: '#3F3F46',
+  gray800: '#27272A',
+  gray900: '#18181B',
 
   // Background
-  background: '#F9FAFB',
+  background: '#FAFAFA',
   surface: '#FFFFFF',
-  surfaceSecondary: '#F3F4F6',
+  surfaceSecondary: '#F4F4F5',
+  darkSurface: '#121212',
 
   // Text
-  textPrimary: '#111827',
-  textSecondary: '#4B5563',
-  textDisabled: '#9CA3AF',
+  textPrimary: '#18181B',
+  textSecondary: '#52525B',
+  textDisabled: '#A1A1AA',
   textInverse: '#FFFFFF',
 
   // Border
-  border: '#E5E7EB',
-  borderFocus: '#4F46E5',
+  border: '#E4E4E7',
+  borderFocus: '#D4AF37',
 
   // Overlay
-  overlay: 'rgba(0, 0, 0, 0.5)',
-  overlayLight: 'rgba(0, 0, 0, 0.3)',
+  overlay: 'rgba(0, 0, 0, 0.65)',
+  overlayLight: 'rgba(0, 0, 0, 0.25)',
 
   // Rating
-  rating: '#F59E0B',
+  rating: '#D4AF37', // Gold stars
 
   // Tab bar
-  tabActive: '#4F46E5',
-  tabInactive: '#9CA3AF',
+  tabActive: '#D4AF37', // Gold active tabs
+  tabInactive: '#A1A1AA',
 };
 
 export type ColorKey = keyof typeof COLORS;

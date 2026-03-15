@@ -46,15 +46,15 @@ export const LINE_HEIGHT = {
 };
 
 export const TYPOGRAPHY = {
-  h1: { fontSize: FONT_SIZE['4xl'], fontWeight: FONT_WEIGHT.bold, lineHeight: FONT_SIZE['4xl'] * LINE_HEIGHT.tight },
-  h2: { fontSize: FONT_SIZE['3xl'], fontWeight: FONT_WEIGHT.bold, lineHeight: FONT_SIZE['3xl'] * LINE_HEIGHT.tight },
-  h3: { fontSize: FONT_SIZE['2xl'], fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE['2xl'] * LINE_HEIGHT.tight },
-  h4: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.xl * LINE_HEIGHT.normal },
-  h5: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.lg * LINE_HEIGHT.normal },
-  bodyLarge: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.base * LINE_HEIGHT.relaxed },
-  bodyMedium: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.md * LINE_HEIGHT.relaxed },
-  bodySmall: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.sm * LINE_HEIGHT.relaxed },
-  caption: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.xs * LINE_HEIGHT.normal },
-  label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.sm * LINE_HEIGHT.normal },
-  button: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.md * LINE_HEIGHT.normal },
+  h1: { fontSize: FONT_SIZE['4xl'], fontWeight: FONT_WEIGHT.bold, lineHeight: FONT_SIZE['4xl'] * LINE_HEIGHT.tight, letterSpacing: -0.5 },
+  h2: { fontSize: FONT_SIZE['3xl'], fontWeight: FONT_WEIGHT.bold, lineHeight: FONT_SIZE['3xl'] * LINE_HEIGHT.tight, letterSpacing: -0.5 },
+  h3: { fontSize: FONT_SIZE['2xl'], fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE['2xl'] * LINE_HEIGHT.tight, letterSpacing: -0.3 },
+  h4: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.xl * LINE_HEIGHT.normal, letterSpacing: -0.2 },
+  h5: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.lg * LINE_HEIGHT.normal, letterSpacing: -0.1 },
+  bodyLarge: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.base * LINE_HEIGHT.relaxed, letterSpacing: 0.1 },
+  bodyMedium: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.md * LINE_HEIGHT.relaxed, letterSpacing: 0.1 },
+  bodySmall: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.sm * LINE_HEIGHT.relaxed, letterSpacing: 0.2 },
+  caption: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.xs * LINE_HEIGHT.normal, letterSpacing: 0.3 },
+  label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.sm * LINE_HEIGHT.normal, letterSpacing: 0.1 },
+  button: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.md * LINE_HEIGHT.normal, letterSpacing: 0.5 },
 };

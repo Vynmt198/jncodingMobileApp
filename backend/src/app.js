@@ -43,11 +43,15 @@ const allowedOrigins = [
     process.env.CLIENT_URL,
     'http://localhost:5173',
     'http://localhost:8081',
+    'http://localhost:8082',
+    'http://localhost:8083',
 ].filter(Boolean);
+
 const corsOrigin = process.env.NODE_ENV === 'production'
     ? (process.env.CLIENT_URL || '*')
     : (origin, cb) => {
-        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+        // Allow no origin (like mobile apps) or allowed origins
+        if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) return cb(null, true);
         return cb(null, false);
     };
 app.use(cors({
