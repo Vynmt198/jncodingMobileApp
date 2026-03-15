@@ -8,6 +8,7 @@ import { progressApi } from './api/progressApi';
 import { certificateApi } from './api/certificateApi';
 import { assignmentApi } from './api/assignmentApi';
 import { quizzesApi } from './api/quizzesApi';
+import { enrollmentApi } from './api/enrollmentApi';
 
 // Persist config for Auth slice
 const authPersistConfig = {
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
   [certificateApi.reducerPath]: certificateApi.reducer,
   [assignmentApi.reducerPath]: assignmentApi.reducer,
   [quizzesApi.reducerPath]: quizzesApi.reducer,
+  [enrollmentApi.reducerPath]: enrollmentApi.reducer,
 });
 
 export const store = configureStore({
@@ -39,7 +41,8 @@ export const store = configureStore({
       .concat(progressApi.middleware)
       .concat(certificateApi.middleware)
       .concat(assignmentApi.middleware)
-      .concat(quizzesApi.middleware),
+      .concat(quizzesApi.middleware)
+      .concat(enrollmentApi.middleware),
 });
 
 export const persistor = persistStore(store);

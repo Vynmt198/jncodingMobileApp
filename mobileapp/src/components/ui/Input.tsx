@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOW } from '@/constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -94,7 +94,11 @@ const styles = StyleSheet.create({
     height: 48,
   },
   inputFocused: {
-    borderColor: COLORS.primary,
+    borderColor: COLORS.secondary,
+    backgroundColor: COLORS.white,
+    ...SHADOW.md,
+    shadowColor: COLORS.secondary,
+    shadowOpacity: 0.1,
   },
   inputError: {
     borderColor: COLORS.error,
@@ -110,6 +114,8 @@ const styles = StyleSheet.create({
     height: '100%',
     ...TYPOGRAPHY.bodyMedium,
     color: COLORS.textPrimary,
+    // @ts-ignore - Web outline removal
+    outlineStyle: 'none' as any,
   },
   errorText: {
     ...TYPOGRAPHY.caption,

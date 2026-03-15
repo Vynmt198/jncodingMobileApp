@@ -2,10 +2,35 @@ const Category = require('../models/Category');
 
 const listCategories = async (req, res, next) => {
     try {
-        const categories = await Category.find({ isActive: true })
-            .sort({ name: 1 })
-            .select('name slug description icon')
-            .lean();
+        const categories = await Category.aggregate([
+            { $match: { isActive: true } },
+            {
+                $lookup: {
+                    from: 'courses',
+                    localField: '_id',
+                    foreignField: 'categoryId',
+                    as: 'courses',
+                },
+            },
+            {
+                $project: {
+                    name: 1,
+                    slug: 1,
+                    description: 1,
+                    icon: 1,
+                    courseCount: {
+                        $size: {
+                            $filter: {
+                                input: '$courses',
+                                as: 'course',
+                                cond: { $eq: ['$$course.status', 'active'] },
+                            },
+                        },
+                    },
+                },
+            },
+            { $sort: { name: 1 } },
+        ]);
         return res.status(200).json({ success: true, data: categories });
     } catch (error) {
         next(error);
