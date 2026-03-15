@@ -1,0 +1,19 @@
+# OPLW - MongoDB Development
+# Chạy: docker-compose up -d
+# Mỗi thành viên team dùng MongoDB local qua Docker -> không conflict
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: oplw-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - oplw_mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: oplw
+
+volumes:
+  oplw_mongo_data:

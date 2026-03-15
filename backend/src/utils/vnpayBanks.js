@@ -1,0 +1,21 @@
+// Danh sách ngân hàng hỗ trợ VNPay
+module.exports = [
+    { code: 'VNPAYQR', name: 'Cổng thanh toán VNPAYQR' },
+    { code: 'VNBANK', name: 'Thanh toán qua thẻ ATM/Tài khoản nội địa' },
+    { code: 'INTCARD', name: 'Thanh toán qua thẻ quốc tế' },
+    { code: 'VIETCOMBANK', name: 'Ngân hàng TMCP Ngoại Thương Việt Nam' },
+    { code: 'VIETINBANK', name: 'Ngân hàng TMCP Công Thương Việt Nam' },
+    { code: 'BIDV', name: 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam' },
+    { code: 'AGRIBANK', name: 'Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam' },
+    { code: 'SACOMBANK', name: 'Ngân hàng TMCP Sài Gòn Thương Tín' },
+    { code: 'TECHCOMBANK', name: 'Ngân hàng TMCP Kỹ Thương Việt Nam' },
+    { code: 'ACB', name: 'Ngân hàng TMCP Á Châu' },
+    { code: 'VPBANK', name: 'Ngân hàng TMCP Việt Nam Thịnh Vượng' },
+    { code: 'TPBANK', name: 'Ngân hàng TMCP Tiên Phong' },
+    { code: 'MBBANK', name: 'Ngân hàng TMCP Quân Đội' },
+    { code: 'NCB', name: 'Ngân hàng TMCP Quốc Dân' },
+    { code: 'SCB', name: 'Ngân hàng TMCP Sài Gòn' },
+    { code: 'VIB', name: 'Ngân hàng TMCP Quốc Tế' },
+    { code: 'SHB', name: 'Ngân hàng TMCP Sài Gòn - Hà Nội' },
+    { code: 'HDBANK', name: 'Ngân hàng TMCP Phát triển TP.HCM' },
+];
