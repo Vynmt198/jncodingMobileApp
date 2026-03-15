@@ -1,0 +1,13 @@
+﻿src/api/axiosInstance.ts(82,28): error TS2339: Property 'multiRemove' does not exist on type 'AsyncStorage'.
+src/components/ui/Button.tsx(64,9): error TS2322: Type '8' is not assignable to type '12'.
+src/components/ui/Button.tsx(65,9): error TS2322: Type '12' is not assignable to type '16'.
+src/components/ui/Button.tsx(68,9): error TS2322: Type '16' is not assignable to type '12'.
+src/components/ui/Button.tsx(69,9): error TS2322: Type '24' is not assignable to type '16'.
+src/components/ui/Card.tsx(32,8): error TS2322: Type '{ children: ReactNode; hitSlop?: number | Insets | null | undefined; id?: string | undefined; needsOffscreenAlphaCompositing?: boolean | undefined; onLayout?: ((event: LayoutChangeEvent) => void) | undefined; ... 86 more ...; onPress: () => void; }' is not assignable to type 'TouchableOpacityProps'.
+  Types of property 'onBlur' are incompatible.
+    Type '((e: BlurEvent) => void) | null | undefined' is not assignable to type '((e: NativeSyntheticEvent<TargetedEvent>) => void) | undefined'.
+      Type 'null' is not assignable to type '((e: NativeSyntheticEvent<TargetedEvent>) => void) | undefined'.
+src/navigation/linking.ts(2,26): error TS2307: Cannot find module 'expo-linking' or its corresponding type declarations.
+src/store/hooks.ts(3,45): error TS2307: Cannot find module '../index' or its corresponding type declarations.
+src/utils/notifications.ts(7,35): error TS2322: Type 'Promise<{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: false; }>' is not assignable to type 'Promise<NotificationBehavior>'.
+  Type '{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: false; }' is missing the following properties from type 'NotificationBehavior': shouldShowBanner, shouldShowList
