@@ -4,6 +4,7 @@ const courseController = require('../controllers/courseController');
 const lessonController = require('../controllers/lessonController');
 const learningController = require('../controllers/learningController');
 const assignmentController = require('../controllers/assignmentController');
+const enrollmentController = require('../controllers/enrollmentController');
 const { getCourseReviews, getRatingSummary } = require('../controllers/reviewController');
 const auth = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
@@ -11,6 +12,7 @@ const { isCourseOwner, isInstructor, isEnrolled: isEnrolledRole, isEnrolledOrCou
 const isEnrolled = require('../middleware/isEnrolled');
 
 router.get('/', courseController.listCourses);
+router.post('/:id/enroll', auth, enrollmentController.enrollCourse);
 router.get('/search', courseController.searchCourses);
 router.get('/autocomplete', courseController.autocomplete);
 // More specific :id routes first (before generic GET /:id)

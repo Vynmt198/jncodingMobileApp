@@ -176,7 +176,7 @@ export const SearchScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="Search premium courses..."
-              placeholderTextColor="rgba(11, 19, 43, 0.4)"
+              placeholderTextColor={COLORS.textSecondary}
               value={query}
               onChangeText={(text) => {
                 setQuery(text);
@@ -294,11 +294,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: SPACING[4],
     borderBottomWidth: 1,
-    borderColor: 'rgba(11, 19, 43, 0.05)',
+    borderColor: COLORS.border,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(11, 19, 43, 0.05)',
+    backgroundColor: COLORS.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING[3],
@@ -318,18 +318,18 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(11, 19, 43, 0.03)',
+    backgroundColor: COLORS.surfaceSecondary,
     borderRadius: 16,
     paddingHorizontal: SPACING[4],
     height: 52,
     borderWidth: 1.5,
-    borderColor: 'rgba(11, 19, 43, 0.06)',
+    borderColor: COLORS.border,
   },
   inputWrapperFocused: {
-    backgroundColor: COLORS.white,
-    borderColor: COLORS.secondary,
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.primary,
     ...SHADOW.md,
-    shadowColor: COLORS.secondary,
+    shadowColor: COLORS.primary,
     shadowOpacity: 0.2,
   },
   searchIcon: {
@@ -351,13 +351,13 @@ const styles = StyleSheet.create({
     paddingRight: SPACING[10],
   },
   chip: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING[5],
     paddingVertical: 10,
     borderRadius: 14,
     marginRight: SPACING[3],
     borderWidth: 1.5,
-    borderColor: 'rgba(11, 19, 43, 0.08)',
+    borderColor: COLORS.border,
   },
   chipActive: {
     backgroundColor: COLORS.primary,
@@ -381,12 +381,12 @@ const styles = StyleSheet.create({
   },
   resultCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     borderRadius: 24,
     padding: SPACING[4],
     marginBottom: SPACING[5],
     borderWidth: 1,
-    borderColor: 'rgba(11, 19, 43, 0.04)',
+    borderColor: COLORS.border,
     ...SHADOW.md,
   },
   resultImage: {
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   resultInstructor: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   resultMeta: {
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING[5],
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(11, 19, 43, 0.05)',
+    borderBottomColor: COLORS.border,
   },
   suggestionText: {
     ...TYPOGRAPHY.bodyMedium,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...TYPOGRAPHY.bodyMedium,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
     marginTop: SPACING[5],
     textAlign: 'center',
     lineHeight: 22,

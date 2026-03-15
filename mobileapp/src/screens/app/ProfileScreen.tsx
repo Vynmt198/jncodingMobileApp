@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppSelector } from '@/store/hooks';
 import * as ImagePicker from 'expo-image-picker';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
@@ -27,7 +28,8 @@ const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
 
 export const ProfileScreen = () => {
   const dispatch = useDispatch();
-  const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, { skip: false });
+  const token = useAppSelector(s => s.auth.token);
+  const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, { skip: !token });
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation();
   const [logoutApi] = useLogoutMutation();
 
@@ -69,6 +71,7 @@ export const ProfileScreen = () => {
         if (!result.canceled && result.assets[0]) {
           setAvatarUri(result.assets[0].uri);
           await updateProfile({ avatar: result.assets[0].uri }).unwrap();
+          Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');
         }
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -85,6 +88,7 @@ export const ProfileScreen = () => {
         if (!result.canceled && result.assets[0]) {
           setAvatarUri(result.assets[0].uri);
           await updateProfile({ avatar: result.assets[0].uri }).unwrap();
+          Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');
         }
       }
     } catch (e) {
@@ -122,7 +126,7 @@ export const ProfileScreen = () => {
     ]);
   };
 
-  if (loadingProfile && !user && !profileError) {
+  if (!token || (loadingProfile && !user && !profileError)) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -130,11 +134,19 @@ export const ProfileScreen = () => {
     );
   }
 
-  if (profileError && !user) {
+  const is401 = profileError && typeof profileError === 'object' && 'status' in profileError && profileError.status === 401;
+  if (profileError && !user && !is401) {
     return (
       <View style={styles.centered}>
         <Text style={styles.title}>Không thể tải hồ sơ</Text>
         <Button title="Đăng xuất" onPress={handleLogout} variant="outline" style={{ marginTop: SPACING[4] }} />
+      </View>
+    );
+  }
+  if (is401) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }

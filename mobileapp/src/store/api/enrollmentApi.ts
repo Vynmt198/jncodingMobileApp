@@ -30,7 +30,14 @@ export const enrollmentApi = createApi({
       transformResponse: (response: ApiResponse<{ enrollments: Enrollment[] }>) => 
         response.data?.enrollments ?? [],
     }),
+    /** POST /api/courses/:id/enroll — đăng ký khóa miễn phí */
+    enrollCourse: builder.mutation<{ enrollment: unknown }, string>({
+      query: (courseId) => ({
+        url: API_ENDPOINTS.ENROLLMENTS.ENROLL_COURSE(courseId),
+        method: 'POST',
+      }),
+    }),
   }),
 });
 
-export const { useGetMyEnrollmentsQuery } = enrollmentApi;
+export const { useGetMyEnrollmentsQuery, useEnrollCourseMutation } = enrollmentApi;

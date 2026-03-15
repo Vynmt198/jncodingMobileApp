@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { REHYDRATE } from 'redux-persist';
 import { User } from '@/types/api.types';
 
 interface AuthState {
@@ -13,7 +14,7 @@ const initialState: AuthState = {
   user: null,
   token: null,
   isAuthenticated: false,
-  isLoading: false, // Show app immediately; PersistGateWithTimeout handles splash
+  isLoading: false,
   isFirstLaunch: true,
 };
 
@@ -45,6 +46,17 @@ export const authSlice = createSlice({
         state.user = { ...state.user, ...action.payload };
       }
     },
+  },
+  extraReducers: builder => {
+    builder.addCase(REHYDRATE, (state, action) => {
+      const payload = action.payload as { auth?: AuthState } | undefined;
+      const auth = payload?.auth;
+      if (auth?.isAuthenticated && !auth?.token) {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+      }
+    });
   },
 });
 

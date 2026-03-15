@@ -116,7 +116,7 @@ export const CourseListingScreen = () => {
             <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
             <Text style={styles.gridPrice}>{item.price === 0 ? 'Free' : `$${item.price}`}</Text>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={12} color={COLORS.secondary} />
+              <Ionicons name="star" size={12} color={COLORS.primary} />
               <Text style={styles.ratingText}>{item.averageRating}</Text>
             </View>
           </View>
@@ -135,7 +135,7 @@ export const CourseListingScreen = () => {
           <Text style={styles.listInstructor}>{item.instructorId?.fullName}</Text>
           <View style={styles.listBottom}>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color={COLORS.secondary} />
+              <Ionicons name="star" size={14} color={COLORS.primary} />
               <Text style={styles.ratingText}>{item.averageRating}</Text>
             </View>
             <Text style={styles.listPrice}>{item.price === 0 ? 'Free' : `$${item.price}`}</Text>
@@ -187,7 +187,7 @@ export const CourseListingScreen = () => {
 
         <View style={styles.filterBar}>
           <TouchableOpacity style={styles.filterBtn} onPress={() => bottomSheetRef.current?.expand()}>
-            <Ionicons name="options-outline" size={18} color={COLORS.secondaryDark} />
+            <Ionicons name="options-outline" size={18} color={COLORS.textSecondary} />
             <Text style={styles.filterText}>Sort & Filter</Text>
           </TouchableOpacity>
           <Text style={styles.resultCount}>{courses.length} Results</Text>
@@ -196,7 +196,7 @@ export const CourseListingScreen = () => {
 
       {loading && page === 1 ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary} />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : (
         <FlatList
@@ -209,10 +209,10 @@ export const CourseListingScreen = () => {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
           }
           ListFooterComponent={() => (
-            loadingMore ? <ActivityIndicator style={{ margin: SPACING[4] }} color={COLORS.secondary} /> : null
+            loadingMore ? <ActivityIndicator style={{ margin: SPACING[4] }} color={COLORS.primary} /> : null
           )}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
@@ -248,7 +248,7 @@ export const CourseListingScreen = () => {
                 }}
               >
                 <Text style={[styles.sortBtnText, sortBy === opt.value && styles.sortBtnTextActive]}>{opt.label}</Text>
-                {sortBy === opt.value && <Ionicons name="checkmark" size={20} color={COLORS.white} />}
+                {sortBy === opt.value && <Ionicons name="checkmark" size={20} color={COLORS.textInverse} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -269,11 +269,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: SPACING[4],
     borderBottomWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   headerTop: {
     flexDirection: 'row',
@@ -307,16 +307,16 @@ const styles = StyleSheet.create({
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.gray50,
+    backgroundColor: COLORS.surfaceSecondary,
     paddingHorizontal: SPACING[4],
     paddingVertical: SPACING[2],
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   filterText: {
     ...TYPOGRAPHY.label,
-    color: COLORS.textPrimary,
+    color: COLORS.textSecondary,
     marginLeft: 6,
     fontWeight: '600',
   },
@@ -330,23 +330,23 @@ const styles = StyleSheet.create({
   },
   listCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
     padding: SPACING[3],
     marginBottom: SPACING[4],
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   listImage: {
     width: 100,
     height: 100,
-    borderRadius: 12,
-    backgroundColor: COLORS.gray100,
+    borderRadius: 10,
+    backgroundColor: COLORS.surfaceSecondary,
   },
   levelFilterBar: {
     paddingVertical: SPACING[2],
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray50,
+    borderBottomColor: COLORS.border,
   },
   levelFilterContent: {
     paddingHorizontal: SPACING[4],
@@ -354,15 +354,15 @@ const styles = StyleSheet.create({
   },
   levelChip: {
     paddingHorizontal: SPACING[3],
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: COLORS.gray50,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: COLORS.surfaceSecondary,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   levelChipActive: {
-    backgroundColor: COLORS.secondary,
-    borderColor: COLORS.secondary,
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   levelChipText: {
     ...TYPOGRAPHY.caption,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   levelChipTextActive: {
-    color: COLORS.primary,
+    color: COLORS.textInverse,
     fontWeight: '700',
   },
   listInfo: {
@@ -404,18 +404,18 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray600,
+    color: COLORS.textSecondary,
     fontWeight: '700',
     marginLeft: 4,
   },
   gridCard: {
     flex: 0.5,
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
     padding: SPACING[3],
     margin: SPACING[2],
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   gridImage: {
     width: '100%',
@@ -465,10 +465,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: SPACING[4],
-    borderRadius: 16,
-    backgroundColor: COLORS.gray50,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceSecondary,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   sortBtnActive: {
     backgroundColor: COLORS.primary,
@@ -480,6 +480,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sortBtnTextActive: {
-    color: COLORS.white,
+    color: COLORS.textInverse,
   },
 });

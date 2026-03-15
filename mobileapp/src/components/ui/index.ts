@@ -4,3 +4,4 @@ export * from './Card';
 export * from './Modal';
 export * from './Skeleton';
 export * from './ErrorBoundary';
+export * from './FadeInView';

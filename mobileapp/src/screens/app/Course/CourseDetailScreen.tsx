@@ -1,30 +1,38 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image, 
-  ActivityIndicator, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Dimensions,
   Platform,
-  StatusBar
+  StatusBar,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ROUTES } from '@/constants/routes';
+import { useEnrollCourseMutation } from '@/store/api/enrollmentApi';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AppStackParamList } from '@/types/navigation.types';
 
 const { width } = Dimensions.get('window');
 const API_URL = 'http://localhost:3000/api';
 
 type TabType = 'overview' | 'curriculum' | 'reviews';
 
+type Nav = NativeStackNavigationProp<AppStackParamList, typeof ROUTES.COURSE_DETAIL>;
+
 export const CourseDetailScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const route = useRoute<any>();
   const { id } = route.params;
+  const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
 
   const [course, setCourse] = useState<any>(null);
   const [curriculum, setCurriculum] = useState<any[]>([]);
@@ -32,6 +40,40 @@ export const CourseDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
+
+  const courseId = course?._id ?? id;
+
+  const handleEnrollPress = async () => {
+    if (!courseId || !course) return;
+    if (course.isEnrolled) {
+      navigation.navigate(ROUTES.COURSE_PLAYER as never, { courseId, lessonId: undefined } as never);
+      return;
+    }
+    if (course.price === 0) {
+      try {
+        await enrollCourse(courseId).unwrap();
+        Alert.alert('Thành công', 'Bạn đã đăng ký khóa học miễn phí.');
+        navigation.navigate(ROUTES.COURSE_PLAYER as never, { courseId, lessonId: undefined } as never);
+      } catch (err: any) {
+        const msg = err?.data?.message ?? err?.message ?? 'Đăng ký thất bại.';
+        if (err?.status === 400 && (msg.includes('Already enrolled') || msg.includes('đã đăng ký'))) {
+          navigation.navigate(ROUTES.COURSE_PLAYER as never, { courseId, lessonId: undefined } as never);
+          return;
+        }
+        if (err?.status === 401) {
+          Alert.alert('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để đăng ký khóa học.');
+          return;
+        }
+        Alert.alert('Lỗi', msg);
+      }
+      return;
+    }
+    navigation.navigate(ROUTES.PAYMENT as never, {
+      courseId,
+      courseTitle: course.title ?? '',
+      price: Number(course.price) || 0,
+    } as never);
+  };
 
   const toggleSection = (index: number) => {
     setExpandedSections(prev => 
@@ -287,12 +329,22 @@ export const CourseDetailScreen = () => {
             <Text style={styles.footerPriceLabel}>Total Price</Text>
             <Text style={styles.footerPrice}>{course.price === 0 ? 'Free' : `$${course.price}`}</Text>
          </View>
-         <TouchableOpacity style={styles.enrollBtn}>
+         <TouchableOpacity
+            style={styles.enrollBtn}
+            onPress={handleEnrollPress}
+            disabled={isEnrolling}
+          >
             <LinearGradient
               colors={[COLORS.secondary, COLORS.secondaryDark]}
               style={styles.enrollGradient}
             >
-               <Text style={styles.enrollText}>Enroll Now</Text>
+              {isEnrolling ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.enrollText}>
+                  {course.isEnrolled ? 'Vào học' : 'Enroll Now'}
+                </Text>
+              )}
             </LinearGradient>
          </TouchableOpacity>
       </View>
@@ -376,8 +428,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: SPACING[6],
     borderBottomWidth: 1,
-    borderColor: COLORS.gray100,
-    backgroundColor: COLORS.white,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   tab: {
     paddingVertical: SPACING[4],
@@ -413,11 +465,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING[8],
   },
   instructorCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     padding: SPACING[4],
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   instructorTitle: {
     ...TYPOGRAPHY.caption,
@@ -446,7 +498,7 @@ const styles = StyleSheet.create({
   },
   instructorBio: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   curriculumHeader: {
@@ -460,27 +512,27 @@ const styles = StyleSheet.create({
   },
   curriculumMeta: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
   },
   sectionContainer: {
     marginBottom: SPACING[4],
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: SPACING[4],
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
   },
   sectionHeaderActive: {
     backgroundColor: 'rgba(212, 175, 55, 0.05)',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray100,
+    borderBottomColor: COLORS.border,
   },
   sectionHeaderLeft: {
     flexDirection: 'row',
@@ -500,7 +552,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray400,
   },
   lessonsContainer: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
   },
   lessonItem: {
     flexDirection: 'row',
@@ -508,7 +560,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: SPACING[4],
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray50,
+    borderBottomColor: COLORS.border,
   },
   lessonLeft: {
     flexDirection: 'row',
@@ -519,7 +571,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.gray50,
+    backgroundColor: COLORS.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING[3],
@@ -618,19 +670,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     padding: SPACING[6],
     paddingBottom: Platform.OS === 'ios' ? 40 : SPACING[6],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: COLORS.gray100,
+    borderTopColor: COLORS.border,
     ...SHADOW.md,
   },
   footerPriceLabel: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
     fontWeight: '700',
     textTransform: 'uppercase',
   },

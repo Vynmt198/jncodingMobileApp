@@ -1,7 +1,50 @@
 const Enrollment = require('../models/Enrollment');
 const Lesson = require('../models/Lesson');
 const Progress = require('../models/Progress');
+const Course = require('../models/Course');
 const mongoose = require('mongoose');
+
+/**
+ * @route POST /api/courses/:id/enroll
+ * @desc Enroll in a free course (price === 0). Paid courses must use payment flow.
+ */
+exports.enrollCourse = async (req, res, next) => {
+    try {
+        const userId = req.user._id;
+        const courseId = req.params.id;
+
+        const course = await Course.findById(courseId).select('title price').lean();
+        if (!course) {
+            return res.status(404).json({ success: false, message: 'Course not found.' });
+        }
+        if (course.price > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Paid course. Please use the payment flow.',
+            });
+        }
+
+        let enrollment = await Enrollment.findOne({ userId, courseId, status: 'active' });
+        if (enrollment) {
+            return res.status(200).json({
+                success: true,
+                message: 'Already enrolled.',
+                data: { enrollment },
+            });
+        }
+
+        enrollment = await Enrollment.create({ userId, courseId, status: 'active' });
+        await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1 } });
+
+        res.status(201).json({
+            success: true,
+            message: 'Enrolled successfully.',
+            data: { enrollment },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 /**
  * @route GET /api/enrollments
