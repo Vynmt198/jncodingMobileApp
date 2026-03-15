@@ -9,10 +9,29 @@ export interface GetPaymentHistoryParams {
   status?: PaymentStatus;
 }
 
+export interface CreatePaymentParams {
+  courseId: string;
+  amount: number;
+}
+
+export interface CreatePaymentResponse {
+  paymentUrl: string;
+  orderId: string;
+}
+
 export const paymentsApi = createApi({
   reducerPath: 'paymentsApi',
   baseQuery: axiosBaseQuery(),
   endpoints: builder => ({
+    /** POST /payments/create — tạo thanh toán VNPay, trả về paymentUrl */
+    createPayment: builder.mutation<CreatePaymentResponse, CreatePaymentParams>({
+      query: body => ({
+        url: API_ENDPOINTS.PAYMENTS.CREATE,
+        method: 'POST',
+        data: body,
+      }),
+      transformResponse: (response: ApiResponse<CreatePaymentResponse>) => response.data ?? { paymentUrl: '', orderId: '' },
+    }),
     getPaymentHistory: builder.query<PaymentHistoryResponse, GetPaymentHistoryParams | void>({
       query: (params = {}) => ({
         url: API_ENDPOINTS.PAYMENTS.HISTORY,
@@ -25,4 +44,4 @@ export const paymentsApi = createApi({
   }),
 });
 
-export const { useGetPaymentHistoryQuery, useLazyGetPaymentHistoryQuery } = paymentsApi;
+export const { useGetPaymentHistoryQuery, useLazyGetPaymentHistoryQuery, useCreatePaymentMutation } = paymentsApi;

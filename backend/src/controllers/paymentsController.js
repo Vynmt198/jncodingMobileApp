@@ -86,10 +86,11 @@ exports.vnpayReturn = async (req, res, next) => {
         const vnp_Params = req.query;
 
         const isValid = vnpayService.verifyReturnUrl(vnp_Params);
-        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        // Luôn redirect về cùng backend (trang /payment-result do backend serve) — không dùng CLIENT_URL để tránh sai trang 5173/8081
+        const baseUrl = process.env.PAYMENT_RESULT_BASE_URL || `${req.protocol}://${req.get('host')}`;
 
         if (!isValid) {
-            return res.redirect(`${clientUrl}/payment-result?status=failed&message=Invalid+signature`);
+            return res.redirect(`${baseUrl}/payment-result?status=failed&message=Invalid+signature`);
         }
 
         const orderId = vnp_Params.vnp_TxnRef;
@@ -98,7 +99,7 @@ exports.vnpayReturn = async (req, res, next) => {
         const payment = await Payment.findOne({ orderId });
 
         if (!payment) {
-            return res.redirect(`${clientUrl}/payment-result?status=failed&message=Payment+not+found`);
+            return res.redirect(`${baseUrl}/payment-result?status=failed&message=Payment+not+found`);
         }
 
         payment.transactionNo = vnp_Params.vnp_TransactionNo;
@@ -130,13 +131,11 @@ exports.vnpayReturn = async (req, res, next) => {
 
         await payment.save();
 
-        // Redirect về frontend với tất cả query params từ VNPay để frontend có thể gọi API
-        const redirectUrl = new URL(`${clientUrl}/payment-result`);
-        // Thêm tất cả query params từ VNPay vào redirect URL
+        // Redirect về trang kết quả (baseUrl đã khai báo ở đầu hàm)
+        const redirectUrl = new URL(`${baseUrl}/payment-result`);
         Object.keys(vnp_Params).forEach(key => {
             redirectUrl.searchParams.append(key, vnp_Params[key]);
         });
-
         res.redirect(redirectUrl.toString());
     } catch (error) {
         next(error);

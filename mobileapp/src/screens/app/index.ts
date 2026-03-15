@@ -5,5 +5,6 @@ export { SearchScreen } from './Search/SearchScreen';
 export { CourseDetailScreen } from './Course/CourseDetailScreen';
 export { CategoryScreen } from './Course/CategoryScreen';
 export { MyCoursesScreen } from './MyCoursesScreen';
+export { PaymentScreen } from './PaymentScreen';
 export { PaymentSuccessScreen } from './PaymentSuccessScreen';
 export { PaymentHistoryScreen } from './PaymentHistoryScreen';

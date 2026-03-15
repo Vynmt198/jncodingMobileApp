@@ -6,7 +6,7 @@ import { ROUTES } from '@/constants/routes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useGetProfileQuery } from '@/store/api/authApi';
-import { useGetMyEnrollmentsQuery } from '@/store/api/enrollmentApi';
+import { useGetMyEnrollmentsQuery } from '@/store/api/enrollmentsApi';
 
 // Base URL for the local backend
 const API_URL = 'http://localhost:3000/api';
@@ -14,7 +14,8 @@ const API_URL = 'http://localhost:3000/api';
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const { data: user } = useGetProfileQuery();
-  const { data: enrollments } = useGetMyEnrollmentsQuery();
+  const { data: enrollmentsData } = useGetMyEnrollmentsQuery(undefined, { skip: false });
+  const enrollments = enrollmentsData?.enrollments ?? [];
   const [categories, setCategories] = useState<any[]>([]);
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
   const [trendingCourses, setTrendingCourses] = useState<any[]>([]);
@@ -161,11 +162,21 @@ export const HomeScreen = () => {
         </ScrollView>
       </View>
 
-      {/* Continue Learning - Dynamic Version */}
-      {enrollments && enrollments.length > 0 && (
+      {/* Tiếp tục học — từ Khoá học của tôi (My Courses) */}
+      {enrollments.length > 0 && (
         <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Tiếp tục học</Text>
+            <TouchableOpacity onPress={() => navigation.navigate(ROUTES.MY_COURSES as never)}>
+              <Text style={styles.seeAllText}>Xem tất cả</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
-            onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: enrollments[0].courseId._id })}
+            onPress={() => {
+              const first = enrollments[0];
+              const courseId = typeof first.courseId === 'object' && first.courseId != null ? (first.courseId as { _id: string })._id : String(first.courseId);
+              navigation.navigate(ROUTES.COURSE_DETAIL as never, { courseId });
+            }}
             activeOpacity={0.9}
           >
             <LinearGradient
@@ -175,16 +186,18 @@ export const HomeScreen = () => {
               style={styles.continueCard}
             >
               <View style={styles.continueHeader}>
-                <Text style={styles.continueTitle}>Resume Luxury Learning</Text>
+                <Text style={styles.continueTitle}>Từ khoá học của tôi</Text>
                 <Ionicons name="chevron-forward-circle" size={24} color={COLORS.secondary} />
               </View>
-              <Text style={styles.continueCourse} numberOfLines={1}>{enrollments[0].courseId.title}</Text>
+              <Text style={styles.continueCourse} numberOfLines={1}>
+                {(typeof enrollments[0].courseId === 'object' && enrollments[0].courseId != null ? (enrollments[0].courseId as { title?: string }).title : 'Khóa học') ?? 'Khóa học'}
+              </Text>
               <View style={styles.progressContainer}>
-                <View style={[styles.progressBar, { backgroundColor: COLORS.secondary, width: `${enrollments[0].progress}%` }]} />
+                <View style={[styles.progressBar, { backgroundColor: COLORS.secondary, width: `${enrollments[0].progress ?? 0}%` }]} />
               </View>
               <View style={styles.progressRow}>
-                <Text style={styles.progressText}>{enrollments[0].progress}% Complete</Text>
-                <Text style={styles.progressText}>{enrollments[0].completedLessons} / {enrollments[0].totalLessons} Lessons</Text>
+                <Text style={styles.progressText}>{enrollments[0].progress ?? 0}% hoàn thành</Text>
+                <Text style={styles.progressText}>{enrollments[0].completedLessons ?? 0} / {enrollments[0].totalLessons ?? 0} bài</Text>
               </View>
             </LinearGradient>
           </TouchableOpacity>

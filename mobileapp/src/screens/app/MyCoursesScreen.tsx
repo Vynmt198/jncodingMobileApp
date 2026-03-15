@@ -69,7 +69,6 @@ export const MyCoursesScreen = () => {
     if (isLoading) return null;
     return (
       <View style={styles.emptyWrap}>
-        <Text style={styles.emptyIcon}>📚</Text>
         <Text style={styles.emptyTitle}>Chưa có khóa học nào</Text>
         <Text style={styles.emptySubtitle}>
           Đăng ký khóa học từ trang chủ để bắt đầu học tập.

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,8 +31,14 @@ export const PaymentSuccessScreen = () => {
   };
 
   const handleDownloadInvoice = () => {
-    // TODO: integrate with API GET /payments/:orderId or export PDF when backend supports
-    // For now placeholder - could open web view or deep link to backend invoice URL
+    if (orderId) {
+      // Backend có GET /payments/:orderId; khi có PDF URL có thể mở Linking.openURL(pdfUrl)
+      Alert.alert(
+        'Tải hóa đơn',
+        'Bạn có thể xem chi tiết giao dịch tại mục Lịch sử thanh toán trong Hồ sơ. Tính năng tải PDF sẽ có trong bản cập nhật.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (

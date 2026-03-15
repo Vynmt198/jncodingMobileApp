@@ -1,73 +1,112 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image, 
-  ActivityIndicator, 
-  Dimensions, 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Dimensions,
   Platform,
-  StatusBar
+  StatusBar,
+  Alert,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useGetCourseByIdQuery, useGetCurriculumQuery } from '@/store/api/coursesApi';
+import { useEnrollFreeCourseMutation } from '@/store/api/enrollmentsApi';
+import { ROUTES } from '@/constants/routes';
+import type { AppStackParamList } from '@/types/navigation.types';
+import axios from 'axios';
 
 const { width } = Dimensions.get('window');
-const API_URL = 'http://localhost:3000/api';
+const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3000/api';
 
 type TabType = 'overview' | 'curriculum' | 'reviews';
 
 export const CourseDetailScreen = () => {
-  const navigation = useNavigation();
-  const route = useRoute<any>();
-  const { id } = route.params;
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList, typeof ROUTES.COURSE_DETAIL>>();
+  const route = useRoute<RouteProp<AppStackParamList, typeof ROUTES.COURSE_DETAIL>>();
+  // Home/Listing/Search truyền { id }, MyCourses truyền { courseId } — đọc cả hai
+  const courseId = (route.params?.courseId ?? (route.params as { id?: string })?.id ?? '') as string;
 
-  const [course, setCourse] = useState<any>(null);
-  const [curriculum, setCurriculum] = useState<any[]>([]);
+  const { data: courseData, isLoading: loadingCourse, error: courseError } = useGetCourseByIdQuery(courseId, {
+    skip: !courseId,
+  });
+  const { data: curriculumData, isLoading: loadingCurriculum } = useGetCurriculumQuery(courseId, { skip: !courseId });
+  const [enrollFree, { isLoading: enrolling }] = useEnrollFreeCourseMutation();
+
+  const course = courseData as any;
+  const curriculum: any[] = Array.isArray(curriculumData) ? curriculumData : [];
   const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
 
+  useEffect(() => {
+    if (!courseId) return;
+    axios.get(`${API_BASE}/courses/${courseId}/reviews`).then(res => {
+      if (res.data?.success && Array.isArray(res.data.data)) setReviews(res.data.data);
+    }).catch(() => {});
+  }, [courseId]);
+
   const toggleSection = (index: number) => {
-    setExpandedSections(prev => 
+    setExpandedSections(prev =>
       prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
     );
   };
 
-  useEffect(() => {
-    fetchCourseDetails();
-  }, [id]);
+  const isEnrolled = !!course?.isEnrolled;
+  const price = Number(course?.price) ?? 0;
+  const loading = loadingCourse || !course;
 
-  const fetchCourseDetails = async () => {
-    try {
-      setLoading(true);
-      const [courseRes, curriculumRes, reviewsRes] = await Promise.all([
-        fetch(`${API_URL}/courses/${id}`),
-        fetch(`${API_URL}/courses/${id}/curriculum`),
-        fetch(`${API_URL}/courses/${id}/reviews`)
-      ]);
-
-      const [courseData, curriculumData, reviewsData] = await Promise.all([
-        courseRes.json(),
-        curriculumRes.json(),
-        reviewsRes.json()
-      ]);
-
-      if (courseData.success) setCourse(courseData.data);
-      if (curriculumData.success) setCurriculum(curriculumData.data);
-      if (reviewsData.success) setReviews(reviewsData.data);
-
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+  const handleEnrollPress = async () => {
+    if (!courseId) return;
+    if (isEnrolled) {
+      navigation.navigate(ROUTES.COURSE_PLAYER, { courseId, lessonId: undefined });
+      return;
     }
+    if (price === 0) {
+      try {
+        await enrollFree(courseId).unwrap();
+        navigation.navigate(ROUTES.COURSE_PLAYER, { courseId, lessonId: undefined });
+      } catch (err: any) {
+        const msg = err?.data?.message ?? err?.message ?? 'Đăng ký thất bại. Thử lại.';
+        Alert.alert('Lỗi', msg);
+      }
+      return;
+    }
+    navigation.navigate(ROUTES.PAYMENT, {
+      courseId,
+      courseTitle: course?.title ?? 'Khóa học',
+      price,
+    });
   };
+
+  if (!courseId) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>Thiếu thông tin khóa học. Vui lòng chọn từ danh sách.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: SPACING[4] }}>
+          <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (courseError) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>Không tải được khóa học. Kiểm tra kết nối hoặc thử lại.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: SPACING[4] }}>
+          <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (loading || !course) {
     return (
@@ -284,15 +323,26 @@ export const CourseDetailScreen = () => {
       {/* Sticky Footer */}
       <View style={styles.footer}>
          <View>
-            <Text style={styles.footerPriceLabel}>Total Price</Text>
-            <Text style={styles.footerPrice}>{course.price === 0 ? 'Free' : `$${course.price}`}</Text>
+            <Text style={styles.footerPriceLabel}>Tổng giá</Text>
+            <Text style={styles.footerPrice}>{price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')} ₫`}</Text>
          </View>
-         <TouchableOpacity style={styles.enrollBtn}>
+         <TouchableOpacity
+           style={styles.enrollBtn}
+           onPress={handleEnrollPress}
+           disabled={enrolling}
+           activeOpacity={0.85}
+         >
             <LinearGradient
               colors={[COLORS.secondary, COLORS.secondaryDark]}
               style={styles.enrollGradient}
             >
-               <Text style={styles.enrollText}>Enroll Now</Text>
+               {enrolling ? (
+                 <ActivityIndicator size="small" color={COLORS.primaryDark} />
+               ) : (
+                 <Text style={styles.enrollText}>
+                   {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
+                 </Text>
+               )}
             </LinearGradient>
          </TouchableOpacity>
       </View>
@@ -612,6 +662,10 @@ const styles = StyleSheet.create({
     color: COLORS.gray400,
     textAlign: 'center',
     marginTop: SPACING[4],
+  },
+  errorText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.textSecondary,
   },
   footer: {
     position: 'absolute',

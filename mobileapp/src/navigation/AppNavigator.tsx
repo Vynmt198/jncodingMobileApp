@@ -13,11 +13,11 @@ import {
   CourseDetailScreen,
   CategoryScreen,
   MyCoursesScreen,
+  PaymentScreen,
   PaymentSuccessScreen,
   PaymentHistoryScreen,
 } from '@/screens/app';
 
-// Mock Screens (to be replaced in later modules)
 const MockScreen = ({ name }: { name: string }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>{name} Screen</Text>
@@ -25,7 +25,6 @@ const MockScreen = ({ name }: { name: string }) => (
 );
 
 const CoursePlayerScreen = () => <MockScreen name="Course Player" />;
-const PaymentScreen = () => <MockScreen name="Payment" />;
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 const Stack = createNativeStackNavigator<AppStackParamList>();
