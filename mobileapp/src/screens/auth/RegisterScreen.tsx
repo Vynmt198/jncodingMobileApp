@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Button, Input, FadeInView } from '@/components/ui';
@@ -141,15 +142,11 @@ export const RegisterScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-    >
+    <View style={styles.container}>
       <FadeInView style={{ flex: 1 }} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.title}>Đăng ký</Text>
@@ -225,7 +222,7 @@ export const RegisterScreen = () => {
         </View>
         </ScrollView>
       </FadeInView>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

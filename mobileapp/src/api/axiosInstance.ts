@@ -26,8 +26,11 @@ export const axiosInstance = axios.create({
   },
 });
 
-/** Key for JWT. Stored via secureStorage (SecureStore when available, else AsyncStorage). */
-export const TOKEN_KEY = '@access_token';
+/**
+ * Key cho JWT trong SecureStore.
+ * Chỉ dùng chữ, số, ".", "-", "_" theo đúng yêu cầu của expo-secure-store.
+ */
+export const TOKEN_KEY = 'access_token';
 
 // ─── Request interceptor: attach JWT ────────────────────────────────────────
 axiosInstance.interceptors.request.use(
