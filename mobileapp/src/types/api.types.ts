@@ -241,6 +241,25 @@ export interface PaymentHistoryResponse {
   total: number;
 }
 
+export interface PaymentDetail {
+  _id: string;
+  userId: string;
+  courseId?: string | null;
+  orderId: string;
+  amount: number;
+  orderInfo: string;
+  paymentStatus: PaymentStatus;
+  transactionNo?: string;
+  bankCode?: string;
+  cardType?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PaymentDetailResponse {
+  payment: PaymentDetail | null;
+}
+
 // GET /api/courses/:id/learn
 export interface CourseLearningData {
   course: { _id: string; title: string; instructorId: string | null };

@@ -13,6 +13,7 @@ import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '@/constants/theme';
 import { Button, Card } from '@/components/ui';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
+import { useGetPaymentDetailQuery } from '@/store/api/paymentsApi';
 
 type PaymentSuccessRouteProp = RouteProp<AppStackParamList, typeof ROUTES.PAYMENT_SUCCESS>;
 type PaymentSuccessNavProp = NativeStackNavigationProp<AppStackParamList, typeof ROUTES.PAYMENT_SUCCESS>;
@@ -21,13 +22,14 @@ export const PaymentSuccessScreen = () => {
   const navigation = useNavigation<PaymentSuccessNavProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
   const { courseId, orderId } = route.params ?? { courseId: '', orderId: '' };
+  const { data: paymentDetail } = useGetPaymentDetailQuery(orderId ?? '', {
+    skip: !orderId,
+  });
+  const payment = paymentDetail?.payment;
 
   const handleStartLearning = () => {
-    if (courseId) {
-      navigation.navigate(ROUTES.COURSE_PLAYER, { courseId, lessonId: undefined });
-    } else {
-      navigation.navigate('MainTabs');
-    }
+    // Sau khi thanh toán, ưu tiên đưa user về tab "Khoá học của tôi"
+    (navigation as any).navigate('MainTabs', { screen: ROUTES.MY_COURSES });
   };
 
   const handleDownloadInvoice = () => {
@@ -60,7 +62,13 @@ export const PaymentSuccessScreen = () => {
         <Text style={styles.cardTitle}>Thông tin đơn hàng</Text>
         <View style={styles.row}>
           <Text style={styles.label}>Mã đơn hàng</Text>
-          <Text style={styles.value} numberOfLines={1}>{orderId || '—'}</Text>
+          <Text style={styles.value} numberOfLines={1}>{payment?.orderId || orderId || '—'}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Số tiền</Text>
+          <Text style={styles.value} numberOfLines={1}>
+            {payment ? `${payment.amount.toLocaleString('vi-VN')}₫` : '—'}
+          </Text>
         </View>
         {courseId ? (
           <View style={styles.row}>
@@ -86,7 +94,7 @@ export const PaymentSuccessScreen = () => {
         <Button
           title="Về trang chủ"
           variant="outline"
-          onPress={() => navigation.navigate('MainTabs')}
+          onPress={() => (navigation as any).navigate('MainTabs', { screen: ROUTES.MY_COURSES })}
           style={styles.homeBtn}
         />
       </View>

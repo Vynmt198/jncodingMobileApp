@@ -7,7 +7,7 @@ import { RootStackParamList } from '@/types/navigation.types';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { linking } from './linking';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { COLORS } from '@/constants/theme';
 import { logout, setPendingAuthRoute } from '@/store/slices/authSlice';
 import { removeSecureItem } from '@/utils/secureStorage';
@@ -30,6 +30,12 @@ export const RootNavigator = () => {
 
   // Khi đã đăng nhập mà mở myapp://login hoặc myapp://register → logout và mở đúng màn Auth
   useEffect(() => {
+    // Trên web, đường dẫn hiện tại thường là '/login' nên logic below sẽ hiểu nhầm là deep link
+    // → logout ngay sau khi đăng nhập lần đầu. Tắt hoàn toàn cơ chế này trên web.
+    if (Platform.OS === 'web') {
+      return;
+    }
+
     const handleUrl = async (url: string) => {
       const authRoute = parseAuthPath(url);
       if (!authRoute || !isAuthenticated) return;
