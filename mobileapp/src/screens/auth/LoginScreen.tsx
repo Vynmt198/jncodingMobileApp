@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, FadeInView } from '@/components/ui';
 import { useLoginMutation } from '@/store/api/authApi';
 import { setCredentials } from '@/store/slices/authSlice';
 import { TOKEN_KEY } from '@/api/axiosInstance';
@@ -66,11 +66,14 @@ export const LoginScreen = () => {
     } catch (err: unknown) {
       const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Đăng nhập thất bại. Vui lòng thử lại.';
       setError(msg);
+      Alert.alert('Đăng nhập thất bại', msg);
     }
   };
 
   const handleSocialLogin = (provider: 'google' | 'apple') => {
-    setError('Đăng nhập bằng ' + (provider === 'google' ? 'Google' : 'Apple') + ' đang được phát triển.');
+    const msg = 'Đăng nhập bằng ' + (provider === 'google' ? 'Google' : 'Apple') + ' đang được phát triển.';
+    setError(msg);
+    Alert.alert('Thông báo', msg);
   };
 
   return (
@@ -79,12 +82,13 @@ export const LoginScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.title}>Đăng nhập</Text>
+      <FadeInView style={styles.fadeWrap} duration={500} slide>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Đăng nhập</Text>
         <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
 
         <Input
@@ -153,7 +157,8 @@ export const LoginScreen = () => {
             <Text style={styles.registerLink}>Đăng ký</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </FadeInView>
     </KeyboardAvoidingView>
   );
 };
@@ -163,6 +168,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  fadeWrap: { flex: 1 },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: SPACING[5],

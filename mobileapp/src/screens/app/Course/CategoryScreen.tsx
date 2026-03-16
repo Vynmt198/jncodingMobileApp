@@ -8,7 +8,7 @@ import {
   Image,
   ActivityIndicator,
   StatusBar,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -17,16 +17,21 @@ import { ROUTES } from '@/constants/routes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
 const API_URL = 'http://localhost:3000/api';
+
+const H_PADDING = SPACING[5] * 2;
+const CARD_GAP = SPACING[4];
 
 // Luxury Banner Images (Unsplash)
 const BANNER_IMAGE = 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1200&auto=format&fit=crop';
 
 export const CategoryScreen = () => {
   const navigation = useNavigation<any>();
+  const { width: screenWidth } = useWindowDimensions();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const cardWidth = Math.floor((screenWidth - H_PADDING - CARD_GAP) / 2);
 
   useEffect(() => {
     fetchCategories();
@@ -57,7 +62,7 @@ export const CategoryScreen = () => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={COLORS.secondary} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -70,7 +75,7 @@ export const CategoryScreen = () => {
       <View style={styles.bannerContainer}>
         <Image source={{ uri: BANNER_IMAGE }} style={styles.bannerImage} />
         <LinearGradient
-          colors={['transparent', 'rgba(10, 25, 41, 0.95)']}
+          colors={['transparent', COLORS.background]}
           style={styles.bannerOverlay}
         />
         <View style={styles.bannerContent}>
@@ -87,21 +92,18 @@ export const CategoryScreen = () => {
 
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { width: screenWidth }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.grid}>
           {categories.map((cat) => (
             <TouchableOpacity 
               key={cat._id} 
-              style={styles.card}
+              style={[styles.card, { width: cardWidth }]}
               onPress={() => handleCategoryPress(cat)}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={[COLORS.white, '#F8FAFC']}
-                style={styles.cardGradient}
-              >
+              <View style={styles.cardGradient}>
                 <View style={styles.iconContainer}>
                   <Text style={styles.iconText}>{cat.name.charAt(0)}</Text>
                 </View>
@@ -112,10 +114,10 @@ export const CategoryScreen = () => {
                 <Ionicons 
                   name="chevron-forward" 
                   size={16} 
-                  color={COLORS.secondary} 
+                  color={COLORS.textSecondary} 
                   style={styles.chevron} 
                 />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -127,6 +129,7 @@ export const CategoryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
     backgroundColor: COLORS.background,
   },
   centerContainer: {
@@ -138,7 +141,9 @@ const styles = StyleSheet.create({
   bannerContainer: {
     height: 280,
     width: '100%',
+    maxWidth: '100%',
     position: 'relative',
+    alignSelf: 'stretch',
   },
   bannerImage: {
     width: '100%',
@@ -181,31 +186,35 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     backgroundColor: COLORS.background,
+    alignSelf: 'stretch',
   },
   scrollContent: {
-    padding: SPACING[5],
+    paddingHorizontal: SPACING[5],
     paddingTop: SPACING[6],
+    paddingBottom: SPACING[8],
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: SPACING[4],
+    gap: CARD_GAP,
+    width: '100%',
   },
   card: {
-    width: (width - SPACING[5] * 2 - SPACING[4]) / 2,
     height: 160,
-    borderRadius: 20,
-    ...SHADOW.sm,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   cardGradient: {
     flex: 1,
-    borderRadius: 20,
-    padding: SPACING[4],
+    borderRadius: 12,
+    padding: SPACING[3],
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
+    borderColor: COLORS.border,
+    minWidth: 0,
   },
   iconContainer: {
     width: 54,
@@ -215,27 +224,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING[3],
-    ...SHADOW.md,
   },
   iconText: {
     ...TYPOGRAPHY.h3,
-    color: COLORS.secondary,
+    color: COLORS.textInverse,
   },
   categoryName: {
     ...TYPOGRAPHY.h4,
     color: COLORS.textPrimary,
     textAlign: 'center',
     marginBottom: SPACING[1],
+    width: '100%',
+    maxWidth: '100%',
   },
   countBadge: {
     paddingHorizontal: SPACING[2],
     paddingVertical: 2,
-    borderRadius: 12,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderRadius: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
   },
   countText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.secondary,
+    color: COLORS.primary,
     fontWeight: '600',
   },
   chevron: {

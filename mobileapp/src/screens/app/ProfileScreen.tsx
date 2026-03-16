@@ -14,6 +14,7 @@ import {
 import { useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppSelector } from '@/store/hooks';
 import * as ImagePicker from 'expo-image-picker';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
@@ -30,7 +31,10 @@ const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
 export const ProfileScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, { skip: false });
+  const token = useAppSelector(s => s.auth.token);
+  const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, {
+    skip: !token,
+  });
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation();
   const [logoutApi] = useLogoutMutation();
 
@@ -83,6 +87,7 @@ export const ProfileScreen = () => {
         if (!result.canceled && result.assets[0]) {
           setAvatarUri(result.assets[0].uri);
           await updateProfile({ avatar: result.assets[0].uri }).unwrap();
+          Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');
         }
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -99,6 +104,7 @@ export const ProfileScreen = () => {
         if (!result.canceled && result.assets[0]) {
           setAvatarUri(result.assets[0].uri);
           await updateProfile({ avatar: result.assets[0].uri }).unwrap();
+          Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');
         }
       }
     } catch (e) {
@@ -139,7 +145,7 @@ export const ProfileScreen = () => {
     );
   };
 
-  if (loadingProfile && !user && !profileError) {
+  if (!token || (loadingProfile && !user && !profileError)) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -147,7 +153,8 @@ export const ProfileScreen = () => {
     );
   }
 
-  if (profileError && !user) {
+  const is401 = profileError && typeof profileError === 'object' && 'status' in profileError && profileError.status === 401;
+  if (profileError && !user && !is401) {
     return (
       <View style={styles.centered}>
         <Text style={styles.title}>Không thể tải hồ sơ</Text>
@@ -155,6 +162,13 @@ export const ProfileScreen = () => {
           Token có thể hết hạn hoặc mất kết nối. Đăng xuất để đăng nhập lại.
         </Text>
         <Button title="Đăng xuất và về đăng nhập" onPress={handleLogout} variant="outline" style={{ marginTop: SPACING[4] }} />
+      </View>
+    );
+  }
+  if (is401) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -203,7 +217,7 @@ export const ProfileScreen = () => {
 
         <TouchableOpacity
           style={[styles.menuRow, styles.paymentHistoryRow]}
-          onPress={() => navigation.navigate(ROUTES.PAYMENT_HISTORY as never)}
+          onPress={() => (navigation as any).navigate(ROUTES.PAYMENT_HISTORY as never)}
           activeOpacity={0.7}
         >
           <Text style={styles.paymentHistoryRowText}> Lịch sử thanh toán</Text>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, FadeInView } from '@/components/ui';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
 
@@ -33,12 +33,13 @@ export const OTPVerificationScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.title}>Nhập mã đặt lại</Text>
+      <FadeInView style={{ flex: 1 }} duration={500} slide>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Nhập mã đặt lại</Text>
         <Text style={styles.subtitle}>
           Nhập mã đặt lại mật khẩu đã được gửi đến {email || 'email của bạn'}.
         </Text>
@@ -55,7 +56,8 @@ export const OTPVerificationScreen = () => {
 
         <Button title="Tiếp tục" onPress={handleNext} style={styles.btn} />
         <Button title="Quay lại" onPress={() => navigation.goBack()} variant="ghost" />
-      </ScrollView>
+        </ScrollView>
+      </FadeInView>
     </KeyboardAvoidingView>
   );
 };

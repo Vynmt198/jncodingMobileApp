@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, FadeInView } from '@/components/ui';
 import { useForgotPasswordMutation } from '@/store/api/authApi';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
@@ -33,8 +33,10 @@ export const ForgotPasswordScreen = () => {
     try {
       await forgotPassword({ email: email.trim() }).unwrap();
       setSent(true);
+      Alert.alert('Thành công', 'Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư (và thư mục spam).');
     } catch {
       setError('Gửi thất bại. Vui lòng thử lại.');
+      Alert.alert('Thất bại', 'Gửi email thất bại. Vui lòng kiểm tra email và thử lại.');
     }
   };
 
@@ -45,6 +47,7 @@ export const ForgotPasswordScreen = () => {
   if (sent) {
     return (
       <View style={styles.container}>
+        <FadeInView style={{ flex: 1 }} duration={400} slide>
         <View style={styles.sentBlock}>
           <Text style={styles.sentTitle}>Kiểm tra email</Text>
           <Text style={styles.sentText}>
@@ -59,6 +62,7 @@ export const ForgotPasswordScreen = () => {
             style={styles.btn}
           />
         </View>
+        </FadeInView>
       </View>
     );
   }
@@ -69,28 +73,28 @@ export const ForgotPasswordScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.title}>Quên mật khẩu</Text>
-        <Text style={styles.subtitle}>Nhập email đăng ký, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.</Text>
-
-        <Input
-          label="Email"
-          placeholder="email@example.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          containerStyle={styles.input}
-        />
-        {error ? <Text style={styles.errText}>{error}</Text> : null}
-
-        <Button title="Gửi link đặt lại" onPress={handleSubmit} loading={isLoading} disabled={isLoading} style={styles.btn} />
-        <Button title="Quay lại" onPress={() => navigation.goBack()} variant="ghost" />
-      </ScrollView>
+      <FadeInView style={{ flex: 1 }} duration={500} slide>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Quên mật khẩu</Text>
+          <Text style={styles.subtitle}>Nhập email đăng ký, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.</Text>
+          <Input
+            label="Email"
+            placeholder="email@example.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            containerStyle={styles.input}
+          />
+          {error ? <Text style={styles.errText}>{error}</Text> : null}
+          <Button title="Gửi link đặt lại" onPress={handleSubmit} loading={isLoading} disabled={isLoading} style={styles.btn} />
+          <Button title="Quay lại" onPress={() => navigation.goBack()} variant="ghost" />
+        </ScrollView>
+      </FadeInView>
     </KeyboardAvoidingView>
   );
 };

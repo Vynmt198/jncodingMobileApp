@@ -1,64 +1,72 @@
+/**
+ * Bảng màu đồng bộ với website (dark theme - black/blue/red gradient)
+ * Nguồn: CSS variables :root / .dark từ website.
+ */
+export const WEBSITE_PALETTE = {
+  primary: '#3b82f6',           // --primary (blue)
+  primaryLight: '#60a5fa',      // blue-400
+  primaryDark: '#2563eb',       // --accent
+  secondary: '#1e293b',        // --secondary (slate)
+  secondaryLight: '#334155',   // --switch-background
+  secondaryDark: '#0f172a',    // slate-900
+  background: '#0a0e1a',       // --background
+  surface: '#131827',          // --card
+  surfaceSecondary: '#1e293b', // --muted
+  textPrimary: '#e4e7f1',      // --foreground
+  textSecondary: '#94a3b8',    // --muted-foreground
+  border: 'rgba(59, 130, 246, 0.2)',  // --border
+  borderFocus: '#3b82f6',      // --ring
+} as const;
+
 export const COLORS = {
-  // Primary palette (Deep Navy Luxury)
-  primary: '#0B132B',      // Midnight Navy
-  primaryLight: '#1C2541', // Soft Navy
-  primaryDark: '#050A1A',  // Super Dark
+  primary: WEBSITE_PALETTE.primary,
+  primaryLight: WEBSITE_PALETTE.primaryLight,
+  primaryDark: WEBSITE_PALETTE.primaryDark,
+  secondary: WEBSITE_PALETTE.secondary,
+  secondaryLight: WEBSITE_PALETTE.secondaryLight,
+  secondaryDark: WEBSITE_PALETTE.secondaryDark,
 
-  // Secondary palette (Champagne & Gold Accents)
-  secondary: '#D4AF37',    // Classic Gold
-  secondaryLight: '#F7E7CE', // Champagne
-  secondaryDark: '#AA8C2C',  // Deep Gold
-
-  // Semantic colors
-  success: '#10B981',
+  success: '#10b981',          // --chart-4
   successLight: '#D1FAE5',
-  warning: '#F59E0B',
+  warning: '#f59e0b',          // --chart-5
   warningLight: '#FEF3C7',
-  error: '#EF4444',
+  error: '#ef4444',            // --destructive
   errorLight: '#FEE2E2',
-  info: '#3B82F6',
-  infoLight: '#DBEAFE',
+  info: '#3b82f6',             // --primary
+  infoLight: 'rgba(59, 130, 246, 0.15)',
 
-  // Neutral scale (Slightly warmer off-whites for luxury feel)
-  white: '#FFFFFF',
-  black: '#0A0A0A',
-  gray50: '#FAFAFA',       // Luxurious Off-white
-  gray100: '#F4F4F5',
-  gray200: '#E4E4E7',
-  gray300: '#D4D4D8',
-  gray400: '#A1A1AA',
-  gray500: '#71717A',
-  gray600: '#52525B',
-  gray700: '#3F3F46',
-  gray800: '#27272A',
-  gray900: '#18181B',
+  white: '#ffffff',
+  black: '#0a0e1a',
+  gray50: '#f8fafc',
+  gray100: '#e4e7f1',
+  gray200: '#94a3b8',
+  gray300: '#64748b',
+  gray400: '#94a3b8',
+  gray500: '#64748b',
+  gray600: '#475569',
+  gray700: '#334155',
+  gray800: '#1e293b',
+  gray900: '#0f172a',
 
-  // Background
-  background: '#FAFAFA',
-  surface: '#FFFFFF',
-  surfaceSecondary: '#F4F4F5',
-  darkSurface: '#121212',
+  background: WEBSITE_PALETTE.background,
+  surface: WEBSITE_PALETTE.surface,
+  surfaceSecondary: WEBSITE_PALETTE.surfaceSecondary,
+  darkSurface: '#0f1419',      // --sidebar
 
-  // Text
-  textPrimary: '#18181B',
-  textSecondary: '#52525B',
-  textDisabled: '#A1A1AA',
-  textInverse: '#FFFFFF',
+  textPrimary: WEBSITE_PALETTE.textPrimary,
+  textSecondary: WEBSITE_PALETTE.textSecondary,
+  textDisabled: '#64748b',
+  textInverse: '#ffffff',
 
-  // Border
-  border: '#E4E4E7',
-  borderFocus: '#D4AF37',
+  border: WEBSITE_PALETTE.border,
+  borderFocus: WEBSITE_PALETTE.borderFocus,
 
-  // Overlay
   overlay: 'rgba(0, 0, 0, 0.65)',
   overlayLight: 'rgba(0, 0, 0, 0.25)',
 
-  // Rating
-  rating: '#D4AF37', // Gold stars
-
-  // Tab bar
-  tabActive: '#D4AF37', // Gold active tabs
-  tabInactive: '#A1A1AA',
+  rating: WEBSITE_PALETTE.primary,
+  tabActive: WEBSITE_PALETTE.primary,
+  tabInactive: WEBSITE_PALETTE.textSecondary,
 };
 
 export type ColorKey = keyof typeof COLORS;

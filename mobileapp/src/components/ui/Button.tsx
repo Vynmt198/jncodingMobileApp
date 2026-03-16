@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacityProps,
   ViewStyle,
   TextStyle,
+  Animated,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
@@ -21,6 +22,9 @@ interface ButtonProps extends TouchableOpacityProps {
   icon?: React.ReactNode;
 }
 
+const PRESS_SCALE = 0.98;
+const PRESS_DURATION = 100;
+
 export const Button: React.FC<ButtonProps> = ({
   title,
   variant = 'primary',
@@ -30,8 +34,23 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   icon,
+  onPressIn,
+  onPressOut,
   ...props
 }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = (e: any) => {
+    if (!disabled && !loading) {
+      Animated.timing(scaleAnim, { toValue: PRESS_SCALE, duration: PRESS_DURATION, useNativeDriver: true }).start();
+    }
+    onPressIn?.(e);
+  };
+  const handlePressOut = (e: any) => {
+    Animated.timing(scaleAnim, { toValue: 1, duration: PRESS_DURATION, useNativeDriver: true }).start();
+    onPressOut?.(e);
+  };
+
   const getContainerStyle = (): ViewStyle => {
     let backgroundColor = COLORS.primary;
     let borderColor = 'transparent';
@@ -109,19 +128,22 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
-      style={[getContainerStyle(), style]}
+      activeOpacity={1}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || loading}
-      activeOpacity={0.8}
       {...props}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === 'primary' || variant === 'secondary' ? COLORS.white : COLORS.primary} />
-      ) : (
-        <>
-          {icon}
-          <Text style={[getTextStyle(), textStyle]}>{title}</Text>
-        </>
-      )}
+      <Animated.View style={[getContainerStyle(), style, { transform: [{ scale: scaleAnim }] }]}>
+        {loading ? (
+          <ActivityIndicator color={variant === 'primary' || variant === 'secondary' ? COLORS.white : COLORS.primary} />
+        ) : (
+          <>
+            {icon}
+            <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+          </>
+        )}
+      </Animated.View>
     </TouchableOpacity>
   );
 };

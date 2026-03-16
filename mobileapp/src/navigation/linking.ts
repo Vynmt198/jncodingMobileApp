@@ -29,7 +29,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
           },
           [ROUTES.COURSE_DETAIL]: 'course/:courseId',
           [ROUTES.COURSE_PLAYER]: 'learn/:courseId/:lessonId?',
-          [ROUTES.CATEGORY]: 'category/:categoryId',
+          [ROUTES.CATEGORY]: 'category',
           [ROUTES.PAYMENT]: 'payment/:courseId',
           [ROUTES.PAYMENT_SUCCESS]: 'payment-success/:orderId',
         },
