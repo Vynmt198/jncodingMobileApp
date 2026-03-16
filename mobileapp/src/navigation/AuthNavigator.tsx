@@ -8,6 +8,7 @@ import {
   OnboardingScreen,
   LoginScreen,
   RegisterScreen,
+  RegisterSuccessScreen,
   ForgotPasswordScreen,
   OTPVerificationScreen,
   NewPasswordScreen,
@@ -44,6 +45,7 @@ export const AuthNavigator = () => {
       <Stack.Screen name={ROUTES.ONBOARDING} component={OnboardingScreen} />
       <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
       <Stack.Screen name={ROUTES.REGISTER} component={RegisterScreen} />
+      <Stack.Screen name={ROUTES.REGISTER_SUCCESS} component={RegisterSuccessScreen} />
       <Stack.Screen name={ROUTES.FORGOT_PASSWORD} component={ForgotPasswordScreen} />
       <Stack.Screen name={ROUTES.OTP_VERIFICATION} component={OTPVerificationScreen} />
       <Stack.Screen name={ROUTES.NEW_PASSWORD} component={NewPasswordScreen} />

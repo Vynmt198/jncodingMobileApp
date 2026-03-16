@@ -6,7 +6,6 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { RootStackParamList } from '@/types/navigation.types';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
-import { BiometricGate } from '@/components/BiometricGate';
 import { linking } from './linking';
 import { StyleSheet } from 'react-native';
 import { COLORS } from '@/constants/theme';
@@ -15,12 +14,6 @@ import { removeSecureItem } from '@/utils/secureStorage';
 import { TOKEN_KEY } from '@/api/axiosInstance';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
-
-const AppWithBiometric = () => (
-  <BiometricGate>
-    <AppNavigator />
-  </BiometricGate>
-);
 
 function parseAuthPath(url: string): 'Login' | 'Register' | null {
   const path = (Linking.parse(url).path ?? url).replace(/^\/+/, '');
@@ -62,7 +55,7 @@ export const RootNavigator = () => {
     <NavigationContainer linking={linking}>
       <RootStack.Navigator screenOptions={{ headerShown: false, contentStyle: styles.content }}>
         {isAuthenticated ? (
-          <RootStack.Screen name="App" component={AppWithBiometric} />
+          <RootStack.Screen name="App" component={AppNavigator} />
         ) : (
           <RootStack.Screen name="Auth" component={AuthNavigator} />
         )}
