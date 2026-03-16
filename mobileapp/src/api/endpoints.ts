@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
     LEARN: (id: string) => `/courses/${id}/learn`,
     ASSIGNMENTS: (id: string) => `/courses/${id}/assignments`,
     MY_ASSIGNMENT_SUBMISSIONS: (id: string) => `/courses/${id}/my-assignment-submissions`,
+    LESSONS: (id: string) => `/courses/${id}/lessons`,
   },
 
   // Assignments (learner: get one, submit; instructor: submissions, grade)
@@ -50,6 +51,9 @@ export const API_ENDPOINTS = {
   LESSONS: {
     BY_ID: (id: string) => `/lessons/by-id/${id}`,
     CONTENT: (id: string) => `/lessons/${id}/content`,
+    UPDATE: (id: string) => `/lessons/${id}`,
+    DELETE: (id: string) => `/lessons/${id}`,
+    REORDER: '/lessons/reorder',
   },
 
   // Progress
@@ -107,6 +111,15 @@ export const API_ENDPOINTS = {
     PIN: (postId: string) => `/discussions/${postId}/pin`,
     DELETE: (id: string) => `/discussions/${id}`,
     REPORT: (id: string) => `/discussions/${id}/report`,
+  },
+
+  // Instructor dashboards & analytics
+  INSTRUCTOR: {
+    DASHBOARD: '/instructor/dashboard',
+    ANALYTICS: '/instructor/analytics',
+    DISCUSSION_SUMMARY: '/instructor/discussions/summary',
+    MY_COURSES: '/instructor/courses',
+    CREATE_COURSE: '/instructor/courses',
   },
 
   // Upload

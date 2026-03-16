@@ -102,6 +102,103 @@ export const coursesApi = createApi({
       transformResponse: (response: ApiResponse<{ lesson: Lesson; progress: Progress }>) =>
         response.data ?? { lesson: {} as Lesson, progress: {} as Progress },
     }),
+
+    /** POST /api/courses — instructor tạo khóa học mới */
+    createCourse: builder.mutation<
+      { _id: string },
+      {
+        title: string;
+        description: string;
+        syllabus?: string;
+        categoryId: string;
+        level: 'beginner' | 'intermediate' | 'advanced';
+        price: number;
+        thumbnail?: string;
+        estimatedCompletionHours?: number;
+      }
+    >({
+      query: body => ({
+        url: API_ENDPOINTS.COURSES.LIST,
+        method: 'POST',
+        data: body,
+      }),
+      transformResponse: (response: any) => {
+        const data = (response as ApiResponse<any>)?.data ?? response?.data ?? response;
+        if (!data) return { _id: '' };
+        if (data._id) return { _id: data._id as string };
+        if (data.course?._id) return { _id: data.course._id as string };
+        return { _id: '' };
+      },
+    }),
+
+    /** POST /api/courses/:id/lessons — instructor thêm bài học */
+    createLesson: builder.mutation<
+      Lesson,
+      {
+        courseId: string;
+        title: string;
+        type: 'video' | 'text' | 'quiz';
+        videoUrl?: string;
+        content?: string;
+        resources?: string;
+        duration?: number;
+        isPreview?: boolean;
+      }
+    >({
+      query: ({ courseId, ...body }) => ({
+        url: API_ENDPOINTS.COURSES.LESSONS(courseId),
+        method: 'POST',
+        data: body,
+      }),
+      transformResponse: (response: ApiResponse<Lesson> | { data?: Lesson }) =>
+        (response as any)?.data ?? (response as any),
+    }),
+
+    /** PUT /api/lessons/:id — cập nhật bài học */
+    updateLesson: builder.mutation<
+      Lesson,
+      {
+        lessonId: string;
+        title?: string;
+        type?: 'video' | 'text' | 'quiz';
+        videoUrl?: string;
+        content?: string;
+        resources?: string;
+        duration?: number;
+        isPreview?: boolean;
+      }
+    >({
+      query: ({ lessonId, ...body }) => ({
+        url: API_ENDPOINTS.LESSONS.UPDATE(lessonId),
+        method: 'PUT',
+        data: body,
+      }),
+      transformResponse: (response: ApiResponse<Lesson> | { data?: Lesson }) =>
+        (response as any)?.data ?? (response as any),
+    }),
+
+    /** DELETE /api/lessons/:id — xoá bài học */
+    deleteLesson: builder.mutation<
+      { success?: boolean; message?: string },
+      string
+    >({
+      query: lessonId => ({
+        url: API_ENDPOINTS.LESSONS.DELETE(lessonId),
+        method: 'DELETE',
+      }),
+    }),
+
+    /** PUT /api/lessons/reorder — đổi thứ tự bài học */
+    reorderLessons: builder.mutation<
+      { success?: boolean; message?: string },
+      { courseId: string; lessons: { id: string; order: number }[] }
+    >({
+      query: body => ({
+        url: API_ENDPOINTS.LESSONS.REORDER,
+        method: 'PUT',
+        data: body,
+      }),
+    }),
   }),
 });
 
@@ -114,4 +211,9 @@ export const {
   useGetAssignmentsByCourseQuery,
   useGetMyAssignmentSubmissionsByCourseQuery,
   useGetLessonContentQuery,
+  useCreateCourseMutation,
+  useCreateLessonMutation,
+  useUpdateLessonMutation,
+  useDeleteLessonMutation,
+  useReorderLessonsMutation,
 } = coursesApi;

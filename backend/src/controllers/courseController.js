@@ -191,9 +191,9 @@ const updateCourse = async (req, res, next) => {
     try {
         const { title, description, syllabus, categoryId, level, price, thumbnail, estimatedCompletionHours, submitForReview } = req.body;
         const isDraft = req.course.status === 'draft';
+        const canEditFull = isDraft || req.course.status === 'rejected';
         const updateData = {};
-        // Khóa đã gửi duyệt/đã duyệt: chỉ cho sửa thông tin không nhạy cảm (mô tả, syllabus, ảnh bìa, thời lượng)
-        if (isDraft) {
+        if (canEditFull) {
             if (title !== undefined) updateData.title = title;
             if (categoryId !== undefined) updateData.categoryId = categoryId || null;
             if (level !== undefined) updateData.level = level;
@@ -203,7 +203,9 @@ const updateCourse = async (req, res, next) => {
         if (syllabus !== undefined) updateData.syllabus = syllabus;
         if (thumbnail !== undefined) updateData.thumbnail = thumbnail;
         if (estimatedCompletionHours !== undefined) updateData.estimatedCompletionHours = estimatedCompletionHours;
-        if (submitForReview === true && isDraft) updateData.status = 'pending';
+        if (submitForReview === true && (req.course.status === 'draft' || req.course.status === 'rejected')) {
+            updateData.status = 'pending';
+        }
         const course = await Course.findByIdAndUpdate(
             req.params.id,
             { $set: updateData },

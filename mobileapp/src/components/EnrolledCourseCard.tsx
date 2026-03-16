@@ -10,7 +10,7 @@ import {
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOW } from '@/constants/theme';
 import type { MyEnrollmentItem } from '@/types/api.types';
 
-const DEFAULT_THUMB = 'https://via.placeholder.com/160x100?text=Course';
+const DEFAULT_THUMB = 'https://placehold.co/160x100?text=Course';
 
 interface EnrolledCourseCardProps {
   enrollment: MyEnrollmentItem;

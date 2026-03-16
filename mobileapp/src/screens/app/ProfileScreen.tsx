@@ -26,13 +26,14 @@ import { removeSecureItem } from '@/utils/secureStorage';
 import { TOKEN_KEY } from '@/api/axiosInstance';
 import { ROUTES } from '@/constants/routes';
 
-const DEFAULT_AVATAR = 'https://via.placeholder.com/120?text=Avatar';
+const DEFAULT_AVATAR = null;
 const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
 
 export const ProfileScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const token = useAppSelector(s => s.auth.token);
+  const currentUser = useAppSelector(s => s.auth.user);
   const { data: certificates, isLoading: loadingCertificates } = useGetMyCertificatesQuery(undefined, {
     skip: !token,
   });
@@ -178,7 +179,12 @@ export const ProfileScreen = () => {
   }
 
   const displayName = (user?.fullName ?? fullName) || 'Người dùng';
+  const displayEmail = user?.email ?? '';
   const displayAvatar = avatarUri || user?.avatar || DEFAULT_AVATAR;
+  const avatarInitial =
+    (displayName && displayName.trim().charAt(0)) ||
+    (displayEmail && displayEmail.trim().charAt(0)) ||
+    'U';
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -186,12 +192,23 @@ export const ProfileScreen = () => {
         <Text style={styles.title}>Hồ sơ</Text>
 
         <View style={styles.avatarSection}>
-          <TouchableOpacity onPress={() => Alert.alert('Chọn ảnh', 'Chọn nguồn', [
-            { text: 'Máy ảnh', onPress: () => pickImage('camera') },
-            { text: 'Thư viện', onPress: () => pickImage('library') },
-            { text: 'Hủy', style: 'cancel' },
-          ])}>
-            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
+          <TouchableOpacity
+            onPress={() =>
+              Alert.alert('Chọn ảnh', 'Chọn nguồn', [
+                { text: 'Máy ảnh', onPress: () => pickImage('camera') },
+                { text: 'Thư viện', onPress: () => pickImage('library') },
+                { text: 'Hủy', style: 'cancel' },
+              ])
+            }
+            activeOpacity={0.8}
+          >
+            {displayAvatar ? (
+              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarInitial}>{avatarInitial.toUpperCase()}</Text>
+              </View>
+            )}
           </TouchableOpacity>
           <Text style={styles.avatarHint}>Chạm để đổi ảnh đại diện</Text>
         </View>
@@ -227,6 +244,8 @@ export const ProfileScreen = () => {
           <Text style={styles.paymentHistoryRowText}> Lịch sử thanh toán</Text>
           <Text style={styles.paymentHistoryRowArrow}>›</Text>
         </TouchableOpacity>
+
+        
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Chứng chỉ của bạn</Text>
@@ -330,6 +349,19 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     backgroundColor: COLORS.gray200,
+  },
+  avatarFallback: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.textInverse,
+    fontWeight: '800',
   },
   avatarHint: {
     ...TYPOGRAPHY.caption,

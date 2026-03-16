@@ -1,5 +1,6 @@
 export { ProfileScreen } from './ProfileScreen';
 export { HomeScreen } from './Home';
+export { RoleDashboardScreen } from './RoleDashboardScreen';
 export { CourseListingScreen } from './Course/CourseListingScreen';
 export { SearchScreen } from './Search/SearchScreen';
 export { CourseDetailScreen } from './Course/CourseDetailScreen';
@@ -10,3 +11,10 @@ export { PaymentSuccessScreen } from './PaymentSuccessScreen';
 export { PaymentHistoryScreen } from './PaymentHistoryScreen';
 export { QuizStartScreen, QuizQuestionScreen, QuizResultScreen } from './Quiz';
 export { CoursePlayerScreen } from './Learn';
+export { AdminUserManagementScreen } from './Admin/AdminUserManagementScreen';
+export { AdminCourseApprovalScreen } from './Admin/AdminCourseApprovalScreen';
+export { InstructorDashboardScreen } from './Instructor/InstructorDashboardScreen';
+export { InstructorAnalyticsScreen } from './Instructor/InstructorAnalyticsScreen';
+export { InstructorDiscussionManagementScreen } from './Instructor/InstructorDiscussionManagementScreen';
+export { InstructorCourseCreateScreen } from './Instructor/InstructorCourseCreateScreen';
+export { InstructorMyCoursesScreen } from './Instructor/InstructorMyCoursesScreen';
