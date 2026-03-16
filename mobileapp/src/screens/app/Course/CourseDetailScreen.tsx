@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   StatusBar,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,10 +23,11 @@ import { useGetCourseByIdQuery, useGetCurriculumQuery, useGetCourseLearningQuery
 import { useEnrollFreeCourseMutation } from '@/store/api/enrollmentsApi';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
-import axios from 'axios';
+import axiosInstance from '@/api/axiosInstance';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 
 const { width } = Dimensions.get('window');
-const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3000/api';
 
 type TabType = 'overview' | 'curriculum' | 'reviews';
 
@@ -54,12 +56,60 @@ export const CourseDetailScreen = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
 
+  // Lấy user hiện tại để quyết định quyền review
+  const auth = useSelector((state: RootState) => state.auth);
+  const currentUserId = (auth as any)?.user?._id;
+
+  const [myReview, setMyReview] = useState<any | null>(null);
+  const [rating, setRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>('');
+  const [editing, setEditing] = useState<boolean>(false);
+
+  const isEnrolled = !!course?.isEnrolled;
+  const price = Number(course?.price) ?? 0;
+  const loading = loadingCourse || !course;
+
+  const canReview = !!currentUserId && isEnrolled;
+
+  // Khi myReview thay đổi (sau khi gửi lần đầu hoặc reload), đồng bộ lại rating/comment trong form
+  useEffect(() => {
+    if (myReview) {
+      setRating(myReview.rating ?? 0);
+      setComment(myReview.reviewText ?? '');
+      setEditing(false);
+    }
+  }, [myReview?._id]);
+
   useEffect(() => {
     if (!courseId) return;
-    axios.get(`${API_BASE}/courses/${courseId}/reviews`).then(res => {
-      if (res.data?.success && Array.isArray(res.data.data)) setReviews(res.data.data);
-    }).catch(() => {});
+    axiosInstance
+      .get(`/courses/${courseId}/reviews`)
+      .then(res => {
+        if (res.data?.success && Array.isArray(res.data.data)) setReviews(res.data.data);
+      })
+      .catch(() => {});
   }, [courseId]);
+  // Fetch review của riêng user hiện tại để luôn có _id chính xác cho PUT/DELETE
+  useEffect(() => {
+    if (!courseId || !canReview) return;
+    axiosInstance
+      .get(`/reviews/my-review/${courseId}`)
+      .then(res => {
+        const data = res.data?.data;
+        const review = data?.review ?? data;
+        if (review) {
+          setMyReview(review);
+        } else {
+          setMyReview(null);
+        }
+      })
+      .catch((err: any) => {
+        if (err?.response?.status === 404) {
+          // Chưa có review
+          setMyReview(null);
+        }
+      });
+  }, [courseId, canReview]);
 
   const toggleSection = (index: number) => {
     setExpandedSections(prev =>
@@ -67,9 +117,76 @@ export const CourseDetailScreen = () => {
     );
   };
 
-  const isEnrolled = !!course?.isEnrolled;
-  const price = Number(course?.price) ?? 0;
-  const loading = loadingCourse || !course;
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // Nếu không có màn hình trước (ví dụ mở trực tiếp trên web),
+      // thì quay về danh sách khóa học.
+      navigation.navigate(ROUTES.COURSE_LISTING as any);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!canReview || !courseId) return;
+    if (!rating) {
+      Alert.alert('Thông báo', 'Vui lòng chọn số sao đánh giá.');
+      return;
+    }
+    try {
+      if (!myReview) {
+        const res = await axiosInstance.post('/reviews', {
+          courseId,
+          rating,
+          reviewText: comment,
+        });
+        const created = res.data?.data?.review ?? res.data?.data;
+        if (res.data?.success && created) {
+          setReviews(prev => [...prev, created]);
+          setMyReview(created);
+          setEditing(false);
+        }
+      } else {
+        const res = await axiosInstance.put(
+          `/reviews/${myReview._id}`,
+          { rating, reviewText: comment },
+        );
+        const updated = res.data?.data?.review ?? res.data?.data;
+        if (res.data?.success && updated) {
+          setReviews(prev => prev.map(r => (r._id === myReview._id ? updated : r)));
+          setMyReview(updated);
+          setEditing(false);
+        }
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Không lưu được đánh giá.';
+      Alert.alert('Lỗi', msg);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!myReview || !courseId) return;
+    Alert.alert('Xóa đánh giá', 'Bạn có chắc muốn xóa đánh giá này?', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Xóa',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await axiosInstance.delete(`/reviews/${myReview._id}`);
+            setReviews(prev => prev.filter(r => r._id !== myReview._id));
+            setRating(0);
+            setComment('');
+                setMyReview(null);
+            setEditing(false);
+          } catch (err: any) {
+            const msg = err?.response?.data?.message ?? 'Không xóa được đánh giá.';
+            Alert.alert('Lỗi', msg);
+          }
+        },
+      },
+    ]);
+  };
 
   const handleEnrollPress = async () => {
     if (!courseId) return;
@@ -303,7 +420,99 @@ export const CourseDetailScreen = () => {
             ))}
          </View>
          <Text style={styles.totalReviews}>Based on {course.reviewCount || 0} reviews</Text>
+         {myReview && (
+           <Text style={[styles.totalReviews, { marginTop: SPACING[1] }]}>
+             Bạn đã đánh giá: {myReview.rating}★
+           </Text>
+         )}
       </View>
+
+      {canReview && (
+        <View style={{ marginBottom: SPACING[6] }}>
+          <Text style={[styles.sectionTitle, { marginBottom: SPACING[2] }]}>
+            Đánh giá khóa học
+          </Text>
+
+          <View style={{ flexDirection: 'row', marginBottom: SPACING[3] }}>
+            {[1, 2, 3, 4, 5].map(star => (
+              <TouchableOpacity
+                key={star}
+                onPress={() => {
+                  setRating(star);
+                  if (!editing && myReview) setEditing(true);
+                }}
+                style={{ marginRight: 4 }}
+              >
+                <Ionicons
+                  name="star"
+                  size={24}
+                  color={star <= rating ? COLORS.secondary : COLORS.gray200}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={{ marginBottom: SPACING[3] }}>
+            <Text style={{ ...TYPOGRAPHY.bodySmall, color: COLORS.textSecondary, marginBottom: SPACING[1] }}>
+              {myReview ? 'Sửa đánh giá của bạn' : 'Viết đánh giá của bạn'}
+            </Text>
+            <TextInput
+              style={{
+                ...TYPOGRAPHY.bodySmall,
+                color: COLORS.textSecondary,
+                borderWidth: 1,
+                borderColor: COLORS.border,
+                borderRadius: 12,
+                padding: SPACING[3],
+                backgroundColor: COLORS.surface,
+                minHeight: 80,
+                textAlignVertical: 'top',
+              }}
+              placeholder="Chạm để nhập nội dung đánh giá..."
+              placeholderTextColor={COLORS.gray400}
+              multiline
+              value={comment}
+              onChangeText={text => {
+                setComment(text);
+                if (!editing && myReview) setEditing(true);
+              }}
+            />
+          </View>
+
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            {myReview && (
+              <TouchableOpacity
+                onPress={handleDeleteReview}
+                style={{ marginRight: SPACING[3] }}
+              >
+                <Text style={{ ...TYPOGRAPHY.bodySmall, color: COLORS.error }}>
+                  Xóa đánh giá
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleSubmitReview}>
+              <View
+                style={{
+                  backgroundColor: COLORS.primary,
+                  paddingHorizontal: SPACING[4],
+                  paddingVertical: SPACING[2],
+                  borderRadius: 999,
+                }}
+              >
+                <Text
+                  style={{
+                    ...TYPOGRAPHY.bodySmall,
+                    color: COLORS.white,
+                    fontWeight: '700',
+                  }}
+                >
+                  {myReview ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       
       {reviews.map((rev) => (
         <View key={rev._id} style={styles.reviewItem}>
@@ -332,7 +541,7 @@ export const CourseDetailScreen = () => {
             colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(11, 19, 43, 0.95)']}
             style={styles.heroOverlay}
           >
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
               <Ionicons name="chevron-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
             <View style={styles.heroContent}>
