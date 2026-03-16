@@ -244,11 +244,11 @@ export const CourseDetailScreen = () => {
       <Text style={styles.sectionTitle}>About this course</Text>
       <Text style={styles.description}>{course.description}</Text>
       
-      <View style={styles.instructorCard}>
+        <View style={styles.instructorCard}>
         <Text style={styles.instructorTitle}>Instructor</Text>
         <View style={styles.instructorInfo}>
           <Image 
-            source={{ uri: course.instructorId?.avatar || 'https://via.placeholder.com/60' }} 
+            source={{ uri: course.instructorId?.avatar || 'https://placehold.co/60x60?text=I' }} 
             style={styles.instructorAvatar} 
           />
           <View style={styles.instructorText}>
@@ -515,7 +515,7 @@ export const CourseDetailScreen = () => {
       {reviews.map((rev) => (
         <View key={rev._id} style={styles.reviewItem}>
           <View style={styles.reviewHeader}>
-            <Image source={{ uri: rev.userId?.avatar || 'https://via.placeholder.com/40' }} style={styles.reviewAvatar} />
+            <Image source={{ uri: rev.userId?.avatar || 'https://placehold.co/40x40?text=U' }} style={styles.reviewAvatar} />
             <View>
               <Text style={styles.reviewUser}>{rev.userId?.fullName}</Text>
               <Text style={styles.reviewDate}>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'Recent'}</Text>
@@ -534,7 +534,7 @@ export const CourseDetailScreen = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Header */}
         <View style={styles.heroContainer}>
-          <Image source={{ uri: course.thumbnail || 'https://via.placeholder.com/500' }} style={styles.heroImage} />
+          <Image source={{ uri: course.thumbnail || 'https://placehold.co/800x500?text=Course' }} style={styles.heroImage} />
           <LinearGradient
             colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(11, 19, 43, 0.95)']}
             style={styles.heroOverlay}

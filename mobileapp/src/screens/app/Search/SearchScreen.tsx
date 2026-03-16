@@ -143,7 +143,7 @@ export const SearchScreen = () => {
       style={styles.resultCard}
       onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: item._id })}
     >
-      <Image source={{ uri: item.thumbnail || 'https://via.placeholder.com/100' }} style={styles.resultImage} />
+      <Image source={{ uri: item.thumbnail || 'https://placehold.co/100x100?text=Course' }} style={styles.resultImage} />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.resultInstructor}>{item.instructorId?.fullName}</Text>

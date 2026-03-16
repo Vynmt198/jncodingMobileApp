@@ -143,7 +143,7 @@ export const HomeScreen = () => {
               onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: course._id })}
             >
               <Image
-                source={{ uri: course.thumbnail || 'https://via.placeholder.com/300' }}
+                source={{ uri: course.thumbnail || 'https://placehold.co/300x200?text=Course' }}
                 style={styles.featuredImage}
               />
               <LinearGradient
@@ -173,7 +173,7 @@ export const HomeScreen = () => {
               <Text style={styles.seeAllText}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
+            <TouchableOpacity
             onPress={() => {
               const first = enrollments[0];
               const courseId = typeof first.courseId === 'object' && first.courseId != null ? (first.courseId as { _id: string })._id : String(first.courseId);
@@ -226,7 +226,7 @@ export const HomeScreen = () => {
             onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: course._id })}
           >
             <Image
-              source={{ uri: course.thumbnail || 'https://via.placeholder.com/100' }}
+              source={{ uri: course.thumbnail || 'https://placehold.co/100x100?text=Course' }}
               style={styles.trendingImage}
             />
             <View style={styles.trendingInfo}>

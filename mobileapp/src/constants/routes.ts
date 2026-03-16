@@ -15,6 +15,12 @@ export const APP_ROUTES = {
   SEARCH: 'Search',
   MY_COURSES: 'MyCourses',
   PROFILE: 'Profile',
+  ADMIN_USER_MANAGEMENT: 'AdminUserManagement',
+  ADMIN_COURSE_APPROVAL: 'AdminCourseApproval',
+  INSTRUCTOR_DASHBOARD: 'InstructorDashboard',
+  INSTRUCTOR_ANALYTICS: 'InstructorAnalytics',
+  INSTRUCTOR_DISCUSSIONS: 'InstructorDiscussions',
+  INSTRUCTOR_CREATE_COURSE: 'InstructorCreateCourse',
 } as const;
 
 // Course routes

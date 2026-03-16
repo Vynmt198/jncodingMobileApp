@@ -35,6 +35,12 @@ export type AppStackParamList = {
   [ROUTES.QUIZ_START]: { quizId: string; courseId?: string; lessonId?: string };
   [ROUTES.QUIZ_QUESTION]: { quizId: string; courseId?: string; lessonId?: string };
   [ROUTES.QUIZ_RESULT]: { attemptId: string; quizId?: string; courseId?: string; lessonId?: string };
+  [ROUTES.ADMIN_USER_MANAGEMENT]: undefined;
+  [ROUTES.ADMIN_COURSE_APPROVAL]: undefined;
+  [ROUTES.INSTRUCTOR_DASHBOARD]: undefined;
+  [ROUTES.INSTRUCTOR_ANALYTICS]: undefined;
+  [ROUTES.INSTRUCTOR_DISCUSSIONS]: undefined;
+  [ROUTES.INSTRUCTOR_CREATE_COURSE]: undefined;
 };
 
 // Root Navigator (Auth vs App)

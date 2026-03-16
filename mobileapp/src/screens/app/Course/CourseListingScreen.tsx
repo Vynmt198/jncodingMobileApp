@@ -111,7 +111,7 @@ export const CourseListingScreen = () => {
           style={styles.gridCard}
           onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: item._id })}
         >
-          <Image source={{ uri: item.thumbnail || 'https://via.placeholder.com/150' }} style={styles.gridImage} />
+          <Image source={{ uri: item.thumbnail || 'https://placehold.co/150x120?text=Course' }} style={styles.gridImage} />
           <View style={styles.gridInfo}>
             <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
             <Text style={styles.gridPrice}>{item.price === 0 ? 'Free' : `$${item.price}`}</Text>
@@ -129,7 +129,7 @@ export const CourseListingScreen = () => {
         style={styles.listCard}
         onPress={() => navigation.navigate(ROUTES.COURSE_DETAIL as never, { id: item._id })}
       >
-        <Image source={{ uri: item.thumbnail || 'https://via.placeholder.com/100' }} style={styles.listImage} />
+        <Image source={{ uri: item.thumbnail || 'https://placehold.co/100x100?text=Course' }} style={styles.listImage} />
         <View style={styles.listInfo}>
           <Text style={styles.listTitle} numberOfLines={2}>{item.title}</Text>
           <Text style={styles.listInstructor}>{item.instructorId?.fullName}</Text>

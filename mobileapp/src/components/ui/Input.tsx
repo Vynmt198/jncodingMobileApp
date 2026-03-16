@@ -95,11 +95,8 @@ const styles = StyleSheet.create({
     height: 48,
   },
   inputFocused: {
-    borderColor: COLORS.secondary,
-    backgroundColor: COLORS.white,
-    ...SHADOW.md,
-    shadowColor: COLORS.secondary,
-    shadowOpacity: 0.1,
+    borderColor: COLORS.borderFocus,
+    backgroundColor: COLORS.surfaceSecondary,
   },
   inputError: {
     borderColor: COLORS.error,
