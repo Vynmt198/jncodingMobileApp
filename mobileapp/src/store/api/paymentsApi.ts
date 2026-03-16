@@ -1,7 +1,12 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseApi';
 import { API_ENDPOINTS } from '@/api/endpoints';
-import type { ApiResponse, PaymentHistoryResponse, PaymentStatus } from '@/types/api.types';
+import type {
+  ApiResponse,
+  PaymentHistoryResponse,
+  PaymentStatus,
+  PaymentDetailResponse,
+} from '@/types/api.types';
 
 export interface GetPaymentHistoryParams {
   page?: number;
@@ -41,7 +46,20 @@ export const paymentsApi = createApi({
       transformResponse: (response: ApiResponse<PaymentHistoryResponse>) =>
         response.data ?? { payments: [], totalPages: 0, currentPage: 1, total: 0 },
     }),
+    getPaymentDetail: builder.query<PaymentDetailResponse, string>({
+      query: orderId => ({
+        url: API_ENDPOINTS.PAYMENTS.DETAIL(orderId),
+        method: 'GET',
+      }),
+      transformResponse: (response: ApiResponse<PaymentDetailResponse>) =>
+        response.data ?? { payment: null },
+    }),
   }),
 });
 
-export const { useGetPaymentHistoryQuery, useLazyGetPaymentHistoryQuery, useCreatePaymentMutation } = paymentsApi;
+export const {
+  useGetPaymentHistoryQuery,
+  useLazyGetPaymentHistoryQuery,
+  useCreatePaymentMutation,
+  useGetPaymentDetailQuery,
+} = paymentsApi;
