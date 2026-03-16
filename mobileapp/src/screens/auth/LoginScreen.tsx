@@ -76,13 +76,14 @@ export const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 24}
     >
       <ScrollView
         contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
       >
         <Text style={styles.title}>Đăng nhập</Text>
         <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>

@@ -31,12 +31,20 @@ export const ENROLL_ROUTES = {
   PAYMENT_HISTORY: 'PaymentHistory',
 } as const;
 
+// Quiz routes
+export const QUIZ_ROUTES = {
+  QUIZ_START: 'QuizStart',
+  QUIZ_QUESTION: 'QuizQuestion',
+  QUIZ_RESULT: 'QuizResult',
+} as const;
+
 // All routes combined
 export const ROUTES = {
   ...AUTH_ROUTES,
   ...APP_ROUTES,
   ...COURSE_ROUTES,
   ...ENROLL_ROUTES,
+  ...QUIZ_ROUTES,
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

@@ -8,3 +8,5 @@ export { MyCoursesScreen } from './MyCoursesScreen';
 export { PaymentScreen } from './PaymentScreen';
 export { PaymentSuccessScreen } from './PaymentSuccessScreen';
 export { PaymentHistoryScreen } from './PaymentHistoryScreen';
+export { QuizStartScreen, QuizQuestionScreen, QuizResultScreen } from './Quiz';
+export { CoursePlayerScreen } from './Learn';

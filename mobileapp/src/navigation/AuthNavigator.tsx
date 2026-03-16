@@ -28,6 +28,7 @@ export const AuthNavigator = () => {
         : isFirstLaunch
           ? ROUTES.ONBOARDING
           : ROUTES.LOGIN;
+  const safeInitialRoute = initialRoute || 'Login';
 
   useEffect(() => {
     if (pendingAuthRoute) dispatch(clearPendingAuthRoute());
@@ -38,7 +39,7 @@ export const AuthNavigator = () => {
       screenOptions={{
         headerShown: false,
       }}
-      initialRouteName={initialRoute}
+      initialRouteName={safeInitialRoute}
     >
       <Stack.Screen name={ROUTES.ONBOARDING} component={OnboardingScreen} />
       <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />

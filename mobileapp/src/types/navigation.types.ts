@@ -31,6 +31,9 @@ export type AppStackParamList = {
   [ROUTES.PAYMENT]: { courseId: string; courseTitle: string; price: number };
   [ROUTES.PAYMENT_SUCCESS]: { courseId: string; orderId: string };
   [ROUTES.PAYMENT_HISTORY]: undefined;
+  [ROUTES.QUIZ_START]: { quizId: string; courseId?: string; lessonId?: string };
+  [ROUTES.QUIZ_QUESTION]: { quizId: string; courseId?: string; lessonId?: string };
+  [ROUTES.QUIZ_RESULT]: { attemptId: string; quizId?: string; courseId?: string; lessonId?: string };
 };
 
 // Root Navigator (Auth vs App)

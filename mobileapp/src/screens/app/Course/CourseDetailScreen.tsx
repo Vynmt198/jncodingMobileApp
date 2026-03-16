@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Image,
   ActivityIndicator,
   Dimensions,
@@ -17,7 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGetCourseByIdQuery, useGetCurriculumQuery } from '@/store/api/coursesApi';
+import { useGetCourseByIdQuery, useGetCurriculumQuery, useGetCourseLearningQuery } from '@/store/api/coursesApi';
 import { useEnrollFreeCourseMutation } from '@/store/api/enrollmentsApi';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
@@ -38,10 +39,16 @@ export const CourseDetailScreen = () => {
     skip: !courseId,
   });
   const { data: curriculumData, isLoading: loadingCurriculum } = useGetCurriculumQuery(courseId, { skip: !courseId });
+  const { data: learningData } = useGetCourseLearningQuery(courseId, { skip: !courseId || !(courseData as { isEnrolled?: boolean })?.isEnrolled });
   const [enrollFree, { isLoading: enrolling }] = useEnrollFreeCourseMutation();
 
   const course = courseData as any;
   const curriculum: any[] = Array.isArray(curriculumData) ? curriculumData : [];
+  const lessonsWithQuizId = (learningData as any)?.lessons ?? [];
+  const lessonIdToQuizId: Record<string, string> = {};
+  lessonsWithQuizId.forEach((l: any) => {
+    if (l.type === 'quiz' && l.quizId) lessonIdToQuizId[l._id] = l.quizId;
+  });
   const [reviews, setReviews] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
@@ -79,7 +86,7 @@ export const CourseDetailScreen = () => {
       }
       return;
     }
-    navigation.navigate(ROUTES.PAYMENT, {
+    navigation.navigate('Payment', {
       courseId,
       courseTitle: course?.title ?? 'Khóa học',
       price,
@@ -137,6 +144,30 @@ export const CourseDetailScreen = () => {
     </View>
   );
 
+  /** duration: seconds. Format as "Mm:Ss" or "Xh Ym", cap absurd values. */
+  const formatLessonDuration = (duration: number | null | undefined): string => {
+    if (duration == null || duration < 0) return '—';
+    const sec = Math.floor(Number(duration));
+    if (sec >= 3600) {
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      return h > 99 ? '—' : `${h}h ${m}m`;
+    }
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  /** totalSeconds → "Xh Ym" or "Xm". */
+  const formatTotalDuration = (totalSeconds: number): string => {
+    const sec = Math.floor(totalSeconds);
+    if (sec <= 0) return '0m';
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  };
+
   const renderCurriculum = () => {
     // Group lessons into sections (Mock groups for UI)
     const lessonsPerSection = 3;
@@ -153,7 +184,7 @@ export const CourseDetailScreen = () => {
         <View style={styles.curriculumHeader}>
           <Text style={styles.curriculumTitle}>Course Content</Text>
           <Text style={styles.curriculumMeta}>
-            {sections.length} sections • {curriculum.length} lectures • {Math.floor(curriculum.reduce((acc, l) => acc + (l.duration || 0), 0) / 60)}h {curriculum.reduce((acc, l) => acc + (l.duration || 0), 0) % 60}m total length
+            {sections.length} sections • {curriculum.length} lectures • {formatTotalDuration(curriculum.reduce((acc, l) => acc + (l.duration || 0), 0))} total length
           </Text>
         </View>
 
@@ -181,40 +212,71 @@ export const CourseDetailScreen = () => {
 
               {isExpanded && (
                 <View style={styles.lessonsContainer}>
-                  {section.lessons.map((lesson: any) => (
-                    <TouchableOpacity 
-                      key={lesson._id} 
-                      style={styles.lessonItem}
-                      disabled={!lesson.isPreview && !course.isEnrolled}
-                    >
-                      <View style={styles.lessonLeft}>
-                        <View style={styles.lessonIconContainer}>
-                          {lesson.isPreview ? (
-                            <Ionicons name="play-circle" size={24} color={COLORS.secondary} />
-                          ) : course.isEnrolled ? (
-                            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                          ) : (
-                            <Ionicons name="lock-closed" size={22} color={COLORS.gray300} />
-                          )}
-                        </View>
-                        <View style={styles.lessonInfo}>
-                          <Text style={styles.lessonName} numberOfLines={1}>{lesson.title}</Text>
-                          <View style={styles.lessonMetaRow}>
-                            <Text style={styles.lessonType}>{lesson.type.toUpperCase()}</Text>
-                            <Text style={styles.dot}> • </Text>
-                            <Text style={styles.lessonDuration}>
-                              {Math.floor(lesson.duration / 60)}:{(lesson.duration % 60).toString().padStart(2, '0')}
-                            </Text>
+                  {section.lessons.map((lesson: any) => {
+                    const isQuiz = lesson.type === 'quiz';
+                    const quizId = isQuiz ? (lesson.quizId ?? lessonIdToQuizId[lesson._id]) : null;
+                    const canOpenQuiz = isQuiz && course.isEnrolled && quizId;
+                    const canOpenLesson = !isQuiz && (lesson.isPreview || course.isEnrolled);
+                    const canOpenQuizOrGoToPlayer = isQuiz && course.isEnrolled;
+                    const onPress = () => {
+                      if (canOpenQuiz) {
+                        navigation.navigate('QuizStart', {
+                          quizId,
+                          courseId,
+                          lessonId: lesson._id,
+                        });
+                      } else if (canOpenLesson) {
+                        navigation.navigate(ROUTES.COURSE_PLAYER, { courseId, lessonId: lesson._id });
+                      } else if (canOpenQuizOrGoToPlayer) {
+                        navigation.navigate(ROUTES.COURSE_PLAYER, { courseId, lessonId: lesson._id });
+                      }
+                    };
+                    const canPress = canOpenQuiz || canOpenLesson || canOpenQuizOrGoToPlayer;
+                    const LessonRowWrapper = Platform.OS === 'web' ? Pressable : TouchableOpacity;
+                    const lessonRowProps = Platform.OS === 'web'
+                      ? { onPress: canPress ? onPress : undefined, style: styles.lessonItem, disabled: !canPress }
+                      : { onPress, disabled: !canPress, activeOpacity: 0.7, style: styles.lessonItem, hitSlop: { top: 8, bottom: 8, left: 8, right: 8 } };
+                    return (
+                      <LessonRowWrapper
+                        key={lesson._id}
+                        {...lessonRowProps}
+                      >
+                        <View style={styles.lessonLeft}>
+                          <View style={styles.lessonIconContainer}>
+                            {lesson.isPreview ? (
+                              <Ionicons name="play-circle" size={24} color={COLORS.secondary} />
+                            ) : isQuiz ? (
+                              <Ionicons name="help-buoy" size={24} color={canOpenQuiz ? COLORS.primary : COLORS.gray300} />
+                            ) : course.isEnrolled ? (
+                              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                            ) : (
+                              <Ionicons name="lock-closed" size={22} color={COLORS.gray300} />
+                            )}
+                          </View>
+                          <View style={styles.lessonInfo}>
+                            <Text style={styles.lessonName} numberOfLines={1}>{lesson.title}</Text>
+                            <View style={styles.lessonMetaRow}>
+                              <Text style={styles.lessonType}>{lesson.type.toUpperCase()}</Text>
+                              <Text style={styles.dot}> • </Text>
+                              <Text style={styles.lessonDuration}>
+                                {lesson.type === 'quiz' ? 'Quiz' : formatLessonDuration(lesson.duration)}
+                              </Text>
+                            </View>
                           </View>
                         </View>
-                      </View>
-                      {lesson.isPreview && !course.isEnrolled && (
-                        <View style={styles.previewBadge}>
-                          <Text style={styles.previewText}>Preview</Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                        {(canOpenQuiz || canOpenQuizOrGoToPlayer) && (
+                          <View style={styles.previewBadge}>
+                            <Text style={styles.previewText}>Làm quiz</Text>
+                          </View>
+                        )}
+                        {lesson.isPreview && !course.isEnrolled && (
+                          <View style={styles.previewBadge}>
+                            <Text style={styles.previewText}>Preview</Text>
+                          </View>
+                        )}
+                      </LessonRowWrapper>
+                    );
+                  })}
                 </View>
               )}
             </View>
@@ -289,7 +351,7 @@ export const CourseDetailScreen = () => {
                   <View style={styles.metaItem}>
                      <Ionicons name="time" size={16} color={COLORS.white} />
                      <Text style={styles.metaText}>
-                        {Math.floor(curriculum.reduce((acc, l) => acc + (l.duration || 0), 0) / 60)}h {curriculum.reduce((acc, l) => acc + (l.duration || 0), 0) % 60}m
+                        {formatTotalDuration(curriculum.reduce((acc, l) => acc + (l.duration || 0), 0))}
                      </Text>
                   </View>
                </View>
@@ -331,15 +393,16 @@ export const CourseDetailScreen = () => {
            onPress={handleEnrollPress}
            disabled={enrolling}
            activeOpacity={0.85}
+           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
          >
             <LinearGradient
               colors={[COLORS.secondary, COLORS.secondaryDark]}
-              style={styles.enrollGradient}
+              style={[styles.enrollGradient, { pointerEvents: 'none' }]}
             >
                {enrolling ? (
                  <ActivityIndicator size="small" color={COLORS.primaryDark} />
                ) : (
-                 <Text style={styles.enrollText}>
+                 <Text style={[styles.enrollText, { pointerEvents: 'none' }]}>
                    {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
                  </Text>
                )}
@@ -559,6 +622,7 @@ const styles = StyleSheet.create({
     padding: SPACING[4],
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray50,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' as const } : {}),
   },
   lessonLeft: {
     flexDirection: 'row',
