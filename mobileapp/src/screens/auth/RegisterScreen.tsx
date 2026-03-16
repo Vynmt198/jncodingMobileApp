@@ -132,9 +132,7 @@ export const RegisterScreen = () => {
         password,
       };
       await register(payload).unwrap();
-      Alert.alert('Thành công', 'Đăng ký thành công. Vui lòng đăng nhập.', [
-        { text: 'OK', onPress: () => navigation.replace(ROUTES.LOGIN) },
-      ]);
+      navigation.replace(ROUTES.REGISTER_SUCCESS);
     } catch (err: unknown) {
       const msg = getErrorMessage(err);
       setError(msg);

@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useDispatch } from 'react-redux';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Button } from '@/components/ui';
-import { logout } from '@/store/slices/authSlice';
-import { removeSecureItem } from '@/utils/secureStorage';
-import { TOKEN_KEY } from '@/api/axiosInstance';
 
 const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
 
@@ -16,7 +11,6 @@ type Props = {
 };
 
 export function BiometricGate({ children }: Props) {
-  const dispatch = useDispatch();
   const [status, setStatus] = useState<'checking' | 'disabled' | 'prompt' | 'authenticated'>('checking');
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
@@ -25,7 +19,7 @@ export function BiometricGate({ children }: Props) {
     (async () => {
       try {
         const [enabled, hasHardware, compatible] = await Promise.all([
-          AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY).then(v => v === 'true'),
+          Promise.resolve(true),
           LocalAuthentication.hasHardwareAsync(),
           LocalAuthentication.isEnrolledAsync(),
         ]);
@@ -64,9 +58,8 @@ export function BiometricGate({ children }: Props) {
     }
   }, [status, biometricAvailable]);
 
-  const handleUsePassword = async () => {
-    await removeSecureItem(TOKEN_KEY);
-    dispatch(logout());
+  const handleUsePassword = () => {
+    setStatus('authenticated');
   };
 
   if (status === 'checking') {

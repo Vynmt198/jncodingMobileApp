@@ -8,6 +8,7 @@ export type AuthStackParamList = {
   [ROUTES.ONBOARDING]: undefined;
   [ROUTES.LOGIN]: undefined;
   [ROUTES.REGISTER]: undefined;
+  [ROUTES.REGISTER_SUCCESS]: undefined;
   [ROUTES.FORGOT_PASSWORD]: undefined;
   [ROUTES.OTP_VERIFICATION]: { email: string };
   [ROUTES.NEW_PASSWORD]: { email: string; otp: string };

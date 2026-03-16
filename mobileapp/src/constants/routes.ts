@@ -3,6 +3,7 @@ export const AUTH_ROUTES = {
   ONBOARDING: 'Onboarding',
   LOGIN: 'Login',
   REGISTER: 'Register',
+  REGISTER_SUCCESS: 'RegisterSuccess',
   FORGOT_PASSWORD: 'ForgotPassword',
   OTP_VERIFICATION: 'OTPVerification',
   NEW_PASSWORD: 'NewPassword',
