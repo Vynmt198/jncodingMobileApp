@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
@@ -60,7 +61,7 @@ export const NewPasswordScreen = () => {
       <FadeInView style={{ flex: 1 }} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.title}>Mật khẩu mới</Text>

@@ -47,7 +47,7 @@ export const FadeInView: React.FC<FadeInViewProps> = ({
   }, [opacity, translateY, duration, delay, slide]);
 
   return (
-    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+    <Animated.View pointerEvents="box-none" style={[style, { opacity, transform: [{ translateY }] }]}>
       {children}
     </Animated.View>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Button, Input, FadeInView } from '@/components/ui';
@@ -36,7 +37,7 @@ export const OTPVerificationScreen = () => {
       <FadeInView style={{ flex: 1 }} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.title}>Nhập mã đặt lại</Text>

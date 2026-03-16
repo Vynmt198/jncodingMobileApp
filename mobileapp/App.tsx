@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { store, persistor } from '@/store';
 import { setStoreForAxios, TOKEN_KEY } from '@/api/axiosInstance';
 import { RootNavigator } from '@/navigation';
@@ -54,14 +55,16 @@ export default function App() {
     <ErrorBoundary>
       <Provider store={store}>
         <PersistGate loading={<LoadingSplash />} persistor={persistor}>
-          <View style={[styles.root, Platform.OS === 'web' && webRootStyle]}>
-            <AppInitializer>
-              <SafeAreaProvider style={styles.safeArea}>
-                <RootNavigator />
-                <StatusBar style="auto" />
-              </SafeAreaProvider>
-            </AppInitializer>
-          </View>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={[styles.root, Platform.OS === 'web' && webRootStyle]}>
+              <AppInitializer>
+                <SafeAreaProvider style={styles.safeArea}>
+                  <RootNavigator />
+                  <StatusBar style="auto" />
+                </SafeAreaProvider>
+              </AppInitializer>
+            </View>
+          </GestureHandlerRootView>
         </PersistGate>
       </Provider>
     </ErrorBoundary>

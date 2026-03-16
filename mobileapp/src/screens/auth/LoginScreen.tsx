@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -77,17 +78,12 @@ export const LoginScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior="padding"
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 24}
-    >
+    <View style={styles.container}>
       <FadeInView style={styles.fadeWrap} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
-          keyboardDismissMode="on-drag"
         >
           <Text style={styles.title}>Đăng nhập</Text>
           <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
@@ -161,7 +157,7 @@ export const LoginScreen = () => {
           </View>
         </ScrollView>
       </FadeInView>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

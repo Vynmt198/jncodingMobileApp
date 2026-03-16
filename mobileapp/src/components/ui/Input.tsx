@@ -35,10 +35,11 @@ export const Input: React.FC<InputProps> = ({
   };
 
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View pointerEvents="box-none" style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
       
       <View
+        collapsable={false}
         style={[
           styles.inputContainer,
           isFocused && styles.inputFocused,
