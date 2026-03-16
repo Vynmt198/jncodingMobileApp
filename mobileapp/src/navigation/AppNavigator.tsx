@@ -1,7 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
 import { ROUTES } from '@/constants/routes';
 import { AppStackParamList, BottomTabParamList } from '@/types/navigation.types';
 import { COLORS } from '@/constants/theme';
@@ -16,15 +15,11 @@ import {
   PaymentScreen,
   PaymentSuccessScreen,
   PaymentHistoryScreen,
+  QuizStartScreen,
+  QuizQuestionScreen,
+  QuizResultScreen,
+  CoursePlayerScreen,
 } from '@/screens/app';
-
-const MockScreen = ({ name }: { name: string }) => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>{name} Screen</Text>
-  </View>
-);
-
-const CoursePlayerScreen = () => <MockScreen name="Course Player" />;
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -53,7 +48,10 @@ const TabNavigator = () => {
 
 export const AppNavigator = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName="MainTabs"
+      screenOptions={{ headerShown: false }}
+    >
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name={ROUTES.COURSE_LISTING} component={CourseListingScreen} />
       <Stack.Screen name={ROUTES.COURSE_DETAIL} component={CourseDetailScreen} />
@@ -62,6 +60,9 @@ export const AppNavigator = () => {
       <Stack.Screen name={ROUTES.PAYMENT} component={PaymentScreen} />
       <Stack.Screen name={ROUTES.PAYMENT_SUCCESS} component={PaymentSuccessScreen} />
       <Stack.Screen name={ROUTES.PAYMENT_HISTORY} component={PaymentHistoryScreen} />
+      <Stack.Screen name="QuizStart" component={QuizStartScreen} />
+      <Stack.Screen name="QuizQuestion" component={QuizQuestionScreen} />
+      <Stack.Screen name="QuizResult" component={QuizResultScreen} />
     </Stack.Navigator>
   );
 };

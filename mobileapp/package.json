@@ -40,6 +40,9 @@
     "react-redux": "^9.2.0",
     "redux-persist": "^6.0.0"
   },
+  "overrides": {
+    "react-native-worklets": "0.5.1"
+  },
   "devDependencies": {
     "@types/react": "~19.1.0",
     "@types/react-redux": "^7.1.34",

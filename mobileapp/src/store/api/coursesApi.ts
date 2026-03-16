@@ -5,6 +5,8 @@ import type {
   CourseLearningData,
   ApiResponse,
   PaginatedResponse,
+  Lesson,
+  Progress,
 } from '@/types/api.types';
 
 interface CourseListItem {
@@ -31,7 +33,8 @@ export const coursesApi = createApi({
         url: API_ENDPOINTS.COURSES.LEARN(courseId),
         method: 'GET',
       }),
-      transformResponse: (response: ApiResponse<CourseLearningData>) => response.data!,
+      transformResponse: (response: ApiResponse<CourseLearningData>) =>
+        response.data ?? { course: { _id: '', title: '', instructorId: null }, lessons: [], progress: [], completionPercentage: 0 },
     }),
 
     /** GET /api/courses/:id — chi tiết khóa (public/optional auth) */
@@ -52,13 +55,14 @@ export const coursesApi = createApi({
       }),
     }),
 
-    /** GET /api/courses/:id/curriculum */
-    getCurriculum: builder.query<unknown, string>({
+    /** GET /api/courses/:id/curriculum — backend trả về { success, data: lessons[] } */
+    getCurriculum: builder.query<Lesson[], string>({
       query: id => ({
         url: API_ENDPOINTS.COURSES.CURRICULUM(id),
         method: 'GET',
       }),
-      transformResponse: (response: ApiResponse<unknown>) => response.data,
+      transformResponse: (response: ApiResponse<Lesson[]>) =>
+        Array.isArray((response as any)?.data) ? (response as any).data : [],
     }),
 
     /** GET /api/courses/:id/assignments — list assignments + canSubmit */
@@ -85,6 +89,19 @@ export const coursesApi = createApi({
       transformResponse: (response: ApiResponse<{ submissions: import('@/types/api.types').AssignmentSubmission[] }>) =>
         response.data?.submissions ?? [],
     }),
+
+    /** GET /api/lessons/:id/content — nội dung bài học (video URL, text content) */
+    getLessonContent: builder.query<
+      { lesson: Lesson; progress: Progress },
+      string
+    >({
+      query: lessonId => ({
+        url: API_ENDPOINTS.LESSONS.CONTENT(lessonId),
+        method: 'GET',
+      }),
+      transformResponse: (response: ApiResponse<{ lesson: Lesson; progress: Progress }>) =>
+        response.data ?? { lesson: {} as Lesson, progress: {} as Progress },
+    }),
   }),
 });
 
@@ -96,4 +113,5 @@ export const {
   useGetCurriculumQuery,
   useGetAssignmentsByCourseQuery,
   useGetMyAssignmentSubmissionsByCourseQuery,
+  useGetLessonContentQuery,
 } = coursesApi;

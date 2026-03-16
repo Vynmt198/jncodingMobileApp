@@ -79,84 +79,86 @@ export const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 24}
     >
       <FadeInView style={styles.fadeWrap} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
         >
           <Text style={styles.title}>Đăng nhập</Text>
-        <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
+          <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
 
-        <Input
-          label="Email"
-          placeholder="email@example.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          containerStyle={styles.input}
-        />
-        <Input
-          label="Mật khẩu"
-          placeholder="Nhập mật khẩu"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          containerStyle={styles.input}
-        />
-        {error ? <Text style={styles.errText}>{error}</Text> : null}
+          <Input
+            label="Email"
+            placeholder="email@example.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            containerStyle={styles.input}
+          />
+          <Input
+            label="Mật khẩu"
+            placeholder="Nhập mật khẩu"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            containerStyle={styles.input}
+          />
+          {error ? <Text style={styles.errText}>{error}</Text> : null}
 
-        <TouchableOpacity
-          style={styles.checkRow}
-          onPress={() => setRememberMe(!rememberMe)}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-            {rememberMe ? <Text style={styles.check}>✓</Text> : null}
+          <TouchableOpacity
+            style={styles.checkRow}
+            onPress={() => setRememberMe(!rememberMe)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe ? <Text style={styles.check}>✓</Text> : null}
+            </View>
+            <Text style={styles.checkLabel}>Ghi nhớ đăng nhập</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.forgotWrap}
+            onPress={() => navigation.navigate(ROUTES.FORGOT_PASSWORD)}
+          >
+            <Text style={styles.forgotLink}>Quên mật khẩu?</Text>
+          </TouchableOpacity>
+
+          <Button
+            title="Đăng nhập"
+            onPress={handleLogin}
+            loading={isLoading}
+            disabled={isLoading}
+            style={styles.btn}
+          />
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>hoặc</Text>
+            <View style={styles.dividerLine} />
           </View>
-          <Text style={styles.checkLabel}>Ghi nhớ đăng nhập</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.forgotWrap}
-          onPress={() => navigation.navigate(ROUTES.FORGOT_PASSWORD)}
-        >
-          <Text style={styles.forgotLink}>Quên mật khẩu?</Text>
-        </TouchableOpacity>
+          <View style={styles.socialRow}>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
+              <Text style={styles.socialBtnText}>Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
+              <Text style={styles.socialBtnText}>Apple</Text>
+            </TouchableOpacity>
+          </View>
 
-        <Button
-          title="Đăng nhập"
-          onPress={handleLogin}
-          loading={isLoading}
-          disabled={isLoading}
-          style={styles.btn}
-        />
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>hoặc</Text>
-          <View style={styles.dividerLine} />
-        </View>
-        <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
-            <Text style={styles.socialBtnText}>Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
-            <Text style={styles.socialBtnText}>Apple</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate(ROUTES.REGISTER)}>
-            <Text style={styles.registerLink}>Đăng ký</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate(ROUTES.REGISTER)}>
+              <Text style={styles.registerLink}>Đăng ký</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </FadeInView>
     </KeyboardAvoidingView>
