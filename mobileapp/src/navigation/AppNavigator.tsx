@@ -5,22 +5,26 @@ import { View, Text } from 'react-native';
 import { ROUTES } from '@/constants/routes';
 import { AppStackParamList, BottomTabParamList } from '@/types/navigation.types';
 import { COLORS } from '@/constants/theme';
-import { ProfileScreen, HomeScreen, CourseListingScreen, SearchScreen, CourseDetailScreen, CategoryScreen } from '@/screens/app';
+import {
+  ProfileScreen,
+  HomeScreen,
+  CourseListingScreen,
+  SearchScreen,
+  CourseDetailScreen,
+  CategoryScreen,
+  MyCoursesScreen,
+  PaymentScreen,
+  PaymentSuccessScreen,
+  PaymentHistoryScreen,
+} from '@/screens/app';
 
-// Mock Screens (to be replaced in later modules)
 const MockScreen = ({ name }: { name: string }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>{name} Screen</Text>
   </View>
 );
 
-const MyCoursesScreen = () => <MockScreen name="My Courses" />;
-
-// Temporary mock screens for AppStack
 const CoursePlayerScreen = () => <MockScreen name="Course Player" />;
-const PaymentScreen = () => <MockScreen name="Payment" />;
-const PaymentSuccessScreen = () => <MockScreen name="Payment Success" />;
-const PaymentHistoryScreen = () => <MockScreen name="Payment History" />;
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 const Stack = createNativeStackNavigator<AppStackParamList>();

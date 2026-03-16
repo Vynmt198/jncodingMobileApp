@@ -8,6 +8,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   isFirstLaunch: boolean;
+  /** Deep link: khi mở app bằng myapp://login hoặc myapp://register mà đang đăng nhập → logout và mở màn này */
+  pendingAuthRoute: 'Login' | 'Register' | null;
 }
 
 const initialState: AuthState = {
@@ -16,6 +18,7 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isLoading: false,
   isFirstLaunch: true,
+  pendingAuthRoute: null,
 };
 
 export const authSlice = createSlice({
@@ -32,6 +35,12 @@ export const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+    },
+    setPendingAuthRoute: (state, action: PayloadAction<'Login' | 'Register' | null>) => {
+      state.pendingAuthRoute = action.payload;
+    },
+    clearPendingAuthRoute: state => {
+      state.pendingAuthRoute = null;
     },
     setAppReady: (state, action: PayloadAction<{ isFirstLaunch: boolean; user?: User | null }>) => {
       state.isLoading = false;
@@ -60,5 +69,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout, setAppReady, updateUser } = authSlice.actions;
+export const { setCredentials, logout, setAppReady, updateUser, setPendingAuthRoute, clearPendingAuthRoute } = authSlice.actions;
 export default authSlice.reducer;

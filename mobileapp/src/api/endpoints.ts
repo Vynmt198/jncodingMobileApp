@@ -59,10 +59,11 @@ export const API_ENDPOINTS = {
     BY_COURSE: (courseId: string) => `/progress/${courseId}`,
   },
 
-  // Enrollments (POST enroll for free courses only)
+  // Enrollments (POST for free course, GET my list)
   ENROLLMENTS: {
     MY: '/enrollments',
-    ENROLL_COURSE: (courseId: string) => `/courses/${courseId}/enroll`,
+    ENROLL_FREE: '/enrollments',
+
   },
 
   // Payments (VNPay)
