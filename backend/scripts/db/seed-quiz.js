@@ -16,14 +16,22 @@ async function run() {
         }
         console.log('[Seed-Quiz] Đang thêm quiz mẫu...');
 
-        const course = await Course.findOne({ status: 'active' }).sort({ createdAt: 1 });
+        // Tìm đúng khóa học React mà bạn đang test
+        const course = await Course.findOne({
+            status: 'active',
+            title: 'Lập trình Node.js & Express từ cơ bản đến nâng cao',
+        }).sort({ createdAt: 1 });
         if (!course) {
             console.log('[Seed-Quiz] Không tìm thấy khóa học. Chạy seed.js trước.');
             process.exit(1);
         }
 
-        // Lesson đầu tiên của khóa → đổi thành type quiz (để không cần hoàn thành lesson trước)
-        const lesson = await Lesson.findOne({ courseId: course._id }).sort({ order: 1 });
+        // Tìm lesson có type 'quiz' hoặc tên chứa 'Quiz' nếu đã seed sẵn,
+        // nếu không có thì lấy lesson cuối cùng để làm quiz.
+        let lesson =
+            (await Lesson.findOne({ courseId: course._id, type: 'quiz' }).sort({ order: 1 })) ||
+            (await Lesson.findOne({ courseId: course._id, title: /quiz/i }).sort({ order: 1 })) ||
+            (await Lesson.findOne({ courseId: course._id }).sort({ order: -1 }));
         if (!lesson) {
             console.log('[Seed-Quiz] Không tìm thấy lesson. Chạy seed.js trước.');
             process.exit(1);

@@ -12,11 +12,12 @@ import { enrollmentApi } from './api/enrollmentApi';
 import { enrollmentsApi } from './api/enrollmentsApi';
 import { paymentsApi } from './api/paymentsApi';
 
-// Persist config for Auth slice
+// Persist config cho Auth slice: chỉ lưu isFirstLaunch,
+// không auto đăng nhập lại user (không lưu user/token).
 const authPersistConfig = {
   key: 'auth',
   storage: AsyncStorage,
-  whitelist: ['user', 'token', 'isAuthenticated', 'isFirstLaunch'],
+  whitelist: ['isFirstLaunch'],
 };
 
 const rootReducer = combineReducers({
