@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, FadeInView } from '@/components/ui';
 import { useResetPasswordMutation } from '@/store/api/authApi';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
@@ -12,7 +13,7 @@ export const NewPasswordScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const route = useRoute<RouteProp<AuthStackParamList, typeof ROUTES.NEW_PASSWORD>>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.NEW_PASSWORD>>();
   const { email, otp } = route.params ?? { email: '', otp: '' };
 
   const [resetPassword, { isLoading }] = useResetPasswordMutation();
@@ -34,12 +35,19 @@ export const NewPasswordScreen = () => {
     if (!validate()) return;
     try {
       await resetPassword({ token: otp, newPassword }).unwrap();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: ROUTES.LOGIN }],
-      });
+      Alert.alert('Thành công', 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập.', [
+        {
+          text: 'OK',
+          onPress: () =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: ROUTES.LOGIN }],
+            }),
+        },
+      ]);
     } catch {
       setError('Đặt lại mật khẩu thất bại. Mã có thể đã hết hạn.');
+      Alert.alert('Thất bại', 'Đặt lại mật khẩu thất bại. Mã có thể đã hết hạn. Vui lòng thử lại.');
     }
   };
 
@@ -49,12 +57,13 @@ export const NewPasswordScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.title}>Mật khẩu mới</Text>
+      <FadeInView style={{ flex: 1 }} duration={500} slide>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Mật khẩu mới</Text>
         <Text style={styles.subtitle}>Nhập mật khẩu mới cho tài khoản của bạn.</Text>
 
         <Input
@@ -76,7 +85,8 @@ export const NewPasswordScreen = () => {
         {error ? <Text style={styles.errText}>{error}</Text> : null}
 
         <Button title="Đặt lại mật khẩu" onPress={handleSubmit} loading={isLoading} disabled={isLoading} style={styles.btn} />
-      </ScrollView>
+        </ScrollView>
+      </FadeInView>
     </KeyboardAvoidingView>
   );
 };

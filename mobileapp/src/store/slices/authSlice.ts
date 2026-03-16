@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { REHYDRATE } from 'redux-persist';
 import { User } from '@/types/api.types';
 
 interface AuthState {
@@ -54,6 +55,17 @@ export const authSlice = createSlice({
         state.user = { ...state.user, ...action.payload };
       }
     },
+  },
+  extraReducers: builder => {
+    builder.addCase(REHYDRATE, (state, action) => {
+      const payload = action.payload as { auth?: AuthState } | undefined;
+      const auth = payload?.auth;
+      if (auth?.isAuthenticated && !auth?.token) {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+      }
+    });
   },
 });
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAppSelector } from '@/store/hooks';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,8 +14,9 @@ const API_URL = 'http://localhost:3000/api';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
-  const { data: user } = useGetProfileQuery();
-  const { data: enrollmentsData } = useGetMyEnrollmentsQuery(undefined, { skip: false });
+  const token = useAppSelector(s => s.auth.token);
+  const { data: user } = useGetProfileQuery(undefined, { skip: !token });
+  const { data: enrollmentsData } = useGetMyEnrollmentsQuery(undefined, { skip: !token });
   const enrollments = enrollmentsData?.enrollments ?? [];
   const [categories, setCategories] = useState<any[]>([]);
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
@@ -60,7 +62,7 @@ export const HomeScreen = () => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={COLORS.secondary} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -152,7 +154,7 @@ export const HomeScreen = () => {
                 <Text style={styles.featuredTitle} numberOfLines={2}>{course.title}</Text>
                 <View style={styles.featuredRow}>
                   <Text style={styles.featuredInstructor}>{course.instructorId?.fullName}</Text>
-                  <Text style={[styles.featuredPrice, { color: COLORS.secondary }]}>
+                  <Text style={[styles.featuredPrice, { color: COLORS.primaryLight }]}>
                     {course.price === 0 ? 'Free' : `$${course.price}`}
                   </Text>
                 </View>
@@ -193,7 +195,12 @@ export const HomeScreen = () => {
                 {(typeof enrollments[0].courseId === 'object' && enrollments[0].courseId != null ? (enrollments[0].courseId as { title?: string }).title : 'Khóa học') ?? 'Khóa học'}
               </Text>
               <View style={styles.progressContainer}>
-                <View style={[styles.progressBar, { backgroundColor: COLORS.secondary, width: `${enrollments[0].progress ?? 0}%` }]} />
+                <View
+                  style={[
+                    styles.progressBar,
+                    { backgroundColor: COLORS.secondary, width: `${enrollments[0].progress ?? 0}%` },
+                  ]}
+                />
               </View>
               <View style={styles.progressRow}>
                 <Text style={styles.progressText}>{enrollments[0].progress ?? 0}% hoàn thành</Text>
@@ -282,15 +289,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.5)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarInitial: {
     ...TYPOGRAPHY.h4,
-    color: COLORS.secondary,
+    color: COLORS.textInverse,
     fontWeight: '800',
   },
   userTextContainer: {
@@ -306,7 +313,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   vipBadge: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -315,7 +322,7 @@ const styles = StyleSheet.create({
   vipText: {
     fontSize: 10,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: COLORS.textInverse,
   },
   sloganText: {
     ...TYPOGRAPHY.caption,
@@ -337,9 +344,9 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.primaryLight,
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.textInverse,
   },
   searchBar: {
     flexDirection: 'row',
@@ -372,7 +379,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     ...TYPOGRAPHY.label,
-    color: COLORS.secondaryDark,
+    color: COLORS.primary,
     fontWeight: '600',
   },
   categoryScroll: {
@@ -387,18 +394,13 @@ const styles = StyleSheet.create({
   categoryIconContainer: {
     width: 64,
     height: 64,
-    borderRadius: 20,
-    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING[1],
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   categoryIconText: {
     ...TYPOGRAPHY.h3,
@@ -436,7 +438,7 @@ const styles = StyleSheet.create({
   },
   featuredCategory: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.secondary,
+    color: COLORS.primaryLight,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -444,7 +446,7 @@ const styles = StyleSheet.create({
   },
   featuredTitle: {
     ...TYPOGRAPHY.h5,
-    color: COLORS.white,
+    color: COLORS.textInverse,
     marginBottom: 4,
     fontWeight: '700',
   },
@@ -510,12 +512,12 @@ const styles = StyleSheet.create({
   },
   trendingCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
     padding: SPACING[4],
     marginBottom: SPACING[6],
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   trendingImage: {
     width: 90,
@@ -548,7 +550,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray600,
+    color: COLORS.textSecondary,
     fontWeight: '700',
     marginLeft: 4,
   },

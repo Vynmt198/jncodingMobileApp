@@ -44,7 +44,7 @@ export const authApi = createApi({
     updateProfile: builder.mutation<User, Partial<Pick<User, 'fullName' | 'avatar' | 'bio' | 'instructorHeadline' | 'instructorBio' | 'instructorSkills' | 'instructorWebsite' | 'instructorFacebook' | 'instructorYoutube' | 'instructorLinkedin'>>>({
       query: body => ({
         url: API_ENDPOINTS.USER.UPDATE_PROFILE,
-        method: 'PATCH',
+        method: 'PUT',
         data: body,
       }),
       transformResponse: (response: { success: boolean; data: { user: User } }) => response.data.user,

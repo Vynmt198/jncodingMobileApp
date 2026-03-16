@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, FadeInView } from '@/components/ui';
 import { useRegisterMutation } from '@/store/api/authApi';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
@@ -132,9 +132,13 @@ export const RegisterScreen = () => {
         password,
       };
       await register(payload).unwrap();
-      navigation.replace(ROUTES.LOGIN);
+      Alert.alert('Thành công', 'Đăng ký thành công. Vui lòng đăng nhập.', [
+        { text: 'OK', onPress: () => navigation.replace(ROUTES.LOGIN) },
+      ]);
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
+      const msg = getErrorMessage(err);
+      setError(msg);
+      Alert.alert('Đăng ký thất bại', msg);
     }
   };
 
@@ -144,12 +148,13 @@ export const RegisterScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.title}>Đăng ký</Text>
+      <FadeInView style={{ flex: 1 }} duration={500} slide>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Đăng ký</Text>
         <Text style={styles.subtitle}>Tạo tài khoản để bắt đầu học</Text>
 
         <Input
@@ -220,7 +225,8 @@ export const RegisterScreen = () => {
             <Text style={styles.loginLink}>Đăng nhập</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </FadeInView>
     </KeyboardAvoidingView>
   );
 };

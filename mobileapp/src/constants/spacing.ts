@@ -16,12 +16,13 @@ export const SPACING = {
   20: 80,
 } as const;
 
+/** Đồng bộ website: --radius 0.75rem (12px) → lg; --radius-sm/md/lg/xl */
 export const BORDER_RADIUS = {
   none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  sm: 8,   // calc(0.75rem - 4px)
+  md: 10,  // calc(0.75rem - 2px)
+  lg: 12,  // --radius 0.75rem (rounded-lg)
+  xl: 16,  // calc(0.75rem + 4px)
   '2xl': 20,
   '3xl': 24,
   full: 9999,

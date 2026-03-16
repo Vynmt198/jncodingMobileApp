@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, FadeInView } from '@/components/ui';
 import { useLoginMutation } from '@/store/api/authApi';
 import { setCredentials } from '@/store/slices/authSlice';
 import { TOKEN_KEY } from '@/api/axiosInstance';
@@ -66,95 +66,101 @@ export const LoginScreen = () => {
     } catch (err: unknown) {
       const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Đăng nhập thất bại. Vui lòng thử lại.';
       setError(msg);
+      Alert.alert('Đăng nhập thất bại', msg);
     }
   };
 
   const handleSocialLogin = (provider: 'google' | 'apple') => {
-    setError('Đăng nhập bằng ' + (provider === 'google' ? 'Google' : 'Apple') + ' đang được phát triển.');
+    const msg = 'Đăng nhập bằng ' + (provider === 'google' ? 'Google' : 'Apple') + ' đang được phát triển.';
+    setError(msg);
+    Alert.alert('Thông báo', msg);
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      behavior="padding"
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 24}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="always"
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
-      >
-        <Text style={styles.title}>Đăng nhập</Text>
-        <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
-
-        <Input
-          label="Email"
-          placeholder="email@example.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          containerStyle={styles.input}
-        />
-        <Input
-          label="Mật khẩu"
-          placeholder="Nhập mật khẩu"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          containerStyle={styles.input}
-        />
-        {error ? <Text style={styles.errText}>{error}</Text> : null}
-
-        <TouchableOpacity
-          style={styles.checkRow}
-          onPress={() => setRememberMe(!rememberMe)}
-          activeOpacity={0.7}
+      <FadeInView style={styles.fadeWrap} duration={500} slide>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
         >
-          <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-            {rememberMe ? <Text style={styles.check}>✓</Text> : null}
+          <Text style={styles.title}>Đăng nhập</Text>
+          <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
+
+          <Input
+            label="Email"
+            placeholder="email@example.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            containerStyle={styles.input}
+          />
+          <Input
+            label="Mật khẩu"
+            placeholder="Nhập mật khẩu"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            containerStyle={styles.input}
+          />
+          {error ? <Text style={styles.errText}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={styles.checkRow}
+            onPress={() => setRememberMe(!rememberMe)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe ? <Text style={styles.check}>✓</Text> : null}
+            </View>
+            <Text style={styles.checkLabel}>Ghi nhớ đăng nhập</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.forgotWrap}
+            onPress={() => navigation.navigate(ROUTES.FORGOT_PASSWORD)}
+          >
+            <Text style={styles.forgotLink}>Quên mật khẩu?</Text>
+          </TouchableOpacity>
+
+          <Button
+            title="Đăng nhập"
+            onPress={handleLogin}
+            loading={isLoading}
+            disabled={isLoading}
+            style={styles.btn}
+          />
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>hoặc</Text>
+            <View style={styles.dividerLine} />
           </View>
-          <Text style={styles.checkLabel}>Ghi nhớ đăng nhập</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.forgotWrap}
-          onPress={() => navigation.navigate(ROUTES.FORGOT_PASSWORD)}
-        >
-          <Text style={styles.forgotLink}>Quên mật khẩu?</Text>
-        </TouchableOpacity>
+          <View style={styles.socialRow}>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
+              <Text style={styles.socialBtnText}>Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
+              <Text style={styles.socialBtnText}>Apple</Text>
+            </TouchableOpacity>
+          </View>
 
-        <Button
-          title="Đăng nhập"
-          onPress={handleLogin}
-          loading={isLoading}
-          disabled={isLoading}
-          style={styles.btn}
-        />
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>hoặc</Text>
-          <View style={styles.dividerLine} />
-        </View>
-        <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
-            <Text style={styles.socialBtnText}>Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
-            <Text style={styles.socialBtnText}>Apple</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate(ROUTES.REGISTER)}>
-            <Text style={styles.registerLink}>Đăng ký</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate(ROUTES.REGISTER)}>
+              <Text style={styles.registerLink}>Đăng ký</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </FadeInView>
     </KeyboardAvoidingView>
   );
 };
@@ -164,6 +170,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  fadeWrap: { flex: 1 },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: SPACING[5],

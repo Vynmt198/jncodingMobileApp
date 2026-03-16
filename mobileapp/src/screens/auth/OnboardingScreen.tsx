@@ -13,7 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button } from '@/components/ui';
+import { Button, FadeInView } from '@/components/ui';
 import { setAppReady } from '@/store/slices/authSlice';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
@@ -83,9 +83,11 @@ export const OnboardingScreen = () => {
 
   const renderItem = ({ item }: { item: (typeof SLIDES)[0] }) => (
     <View style={[styles.slide, { width: slideW }]}>
-      <View style={styles.placeholder} />
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.subtitle}>{item.subtitle}</Text>
+      <FadeInView style={styles.slide} duration={500} slide>
+        <View style={styles.placeholder} />
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.subtitle}>{item.subtitle}</Text>
+      </FadeInView>
     </View>
   );
 

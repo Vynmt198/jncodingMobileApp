@@ -29,10 +29,11 @@ const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:3000/api';
 
 type TabType = 'overview' | 'curriculum' | 'reviews';
 
+type Nav = NativeStackNavigationProp<AppStackParamList, typeof ROUTES.COURSE_DETAIL>;
+
 export const CourseDetailScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList, typeof ROUTES.COURSE_DETAIL>>();
+  const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProp<AppStackParamList, typeof ROUTES.COURSE_DETAIL>>();
-  // Home/Listing/Search truyền { id }, MyCourses truyền { courseId } — đọc cả hai
   const courseId = (route.params?.courseId ?? (route.params as { id?: string })?.id ?? '') as string;
 
   const { data: courseData, isLoading: loadingCourse, error: courseError } = useGetCourseByIdQuery(courseId, {
@@ -489,8 +490,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: SPACING[6],
     borderBottomWidth: 1,
-    borderColor: COLORS.gray100,
-    backgroundColor: COLORS.white,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   tab: {
     paddingVertical: SPACING[4],
@@ -526,11 +527,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING[8],
   },
   instructorCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     padding: SPACING[4],
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   instructorTitle: {
     ...TYPOGRAPHY.caption,
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
   },
   instructorBio: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   curriculumHeader: {
@@ -573,27 +574,27 @@ const styles = StyleSheet.create({
   },
   curriculumMeta: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
   },
   sectionContainer: {
     marginBottom: SPACING[4],
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.gray100,
+    borderColor: COLORS.border,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: SPACING[4],
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
   },
   sectionHeaderActive: {
     backgroundColor: 'rgba(212, 175, 55, 0.05)',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray100,
+    borderBottomColor: COLORS.border,
   },
   sectionHeaderLeft: {
     flexDirection: 'row',
@@ -613,7 +614,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray400,
   },
   lessonsContainer: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
   },
   lessonItem: {
     flexDirection: 'row',
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.gray50,
+    backgroundColor: COLORS.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING[3],
@@ -736,19 +737,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     padding: SPACING[6],
     paddingBottom: Platform.OS === 'ios' ? 40 : SPACING[6],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: COLORS.gray100,
+    borderTopColor: COLORS.border,
     ...SHADOW.md,
   },
   footerPriceLabel: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.gray500,
+    color: COLORS.textSecondary,
     fontWeight: '700',
     textTransform: 'uppercase',
   },

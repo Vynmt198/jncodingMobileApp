@@ -1,5 +1,10 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# env (API keys, base URL)
+.env
+.env.local
+.env.*.local
+
 # dependencies
 node_modules/
 

@@ -1,5 +1,9 @@
 import { Platform } from 'react-native';
 
+/**
+ * Font family — đồng bộ với Websitehoclaptrinhjncoding (fonts.css: Inter).
+ * Để dùng Inter trên mobile: cài expo-font, load Inter rồi đổi default thành 'Inter'.
+ */
 export const FONTS = {
   regular: Platform.select({
     ios: 'System',
@@ -18,14 +22,15 @@ export const FONTS = {
   }),
 };
 
+/** Đồng bộ website: --font-size 16px, Tailwind text-sm/base/lg/xl/2xl */
 export const FONT_SIZE = {
   xs: 10,
-  sm: 12,
+  sm: 12,   // text-sm
   md: 14,
-  base: 16,
-  lg: 18,
-  xl: 20,
-  '2xl': 24,
+  base: 16, // --font-size, text-base
+  lg: 18,   // text-lg
+  xl: 20,   // text-xl
+  '2xl': 24, // text-2xl (h1)
   '3xl': 28,
   '4xl': 32,
   '5xl': 40,
@@ -45,16 +50,17 @@ export const LINE_HEIGHT = {
   relaxed: 1.75,
 };
 
+/** Đồng bộ website theme: h1–h4 font-medium (500), line-height 1.5, input/button text-base */
 export const TYPOGRAPHY = {
-  h1: { fontSize: FONT_SIZE['4xl'], fontWeight: FONT_WEIGHT.bold, lineHeight: FONT_SIZE['4xl'] * LINE_HEIGHT.tight, letterSpacing: -0.5 },
-  h2: { fontSize: FONT_SIZE['3xl'], fontWeight: FONT_WEIGHT.bold, lineHeight: FONT_SIZE['3xl'] * LINE_HEIGHT.tight, letterSpacing: -0.5 },
-  h3: { fontSize: FONT_SIZE['2xl'], fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE['2xl'] * LINE_HEIGHT.tight, letterSpacing: -0.3 },
-  h4: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.xl * LINE_HEIGHT.normal, letterSpacing: -0.2 },
-  h5: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.lg * LINE_HEIGHT.normal, letterSpacing: -0.1 },
+  h1: { fontSize: FONT_SIZE['2xl'], fontWeight: FONT_WEIGHT.bold, lineHeight: FONT_SIZE['2xl'] * LINE_HEIGHT.normal, letterSpacing: -0.5 },
+  h2: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.xl * LINE_HEIGHT.normal, letterSpacing: -0.3 },
+  h3: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.lg * LINE_HEIGHT.normal, letterSpacing: -0.2 },
+  h4: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.base * LINE_HEIGHT.normal, letterSpacing: -0.1 },
+  h5: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.lg * LINE_HEIGHT.normal, letterSpacing: -0.1 },
   bodyLarge: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.base * LINE_HEIGHT.relaxed, letterSpacing: 0.1 },
   bodyMedium: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.md * LINE_HEIGHT.relaxed, letterSpacing: 0.1 },
   bodySmall: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.sm * LINE_HEIGHT.relaxed, letterSpacing: 0.2 },
   caption: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.regular, lineHeight: FONT_SIZE.xs * LINE_HEIGHT.normal, letterSpacing: 0.3 },
   label: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.sm * LINE_HEIGHT.normal, letterSpacing: 0.1 },
-  button: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, lineHeight: FONT_SIZE.md * LINE_HEIGHT.normal, letterSpacing: 0.5 },
+  button: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.medium, lineHeight: FONT_SIZE.base * LINE_HEIGHT.normal, letterSpacing: 0.5 },
 };

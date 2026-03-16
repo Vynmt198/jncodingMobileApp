@@ -63,6 +63,7 @@ export const API_ENDPOINTS = {
   ENROLLMENTS: {
     MY: '/enrollments',
     ENROLL_FREE: '/enrollments',
+
   },
 
   // Payments (VNPay)
