@@ -8,9 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useGetProfileQuery } from '@/store/api/authApi';
 import { useGetMyEnrollmentsQuery } from '@/store/api/enrollmentsApi';
-
-// Base URL for the local backend
-const API_URL = 'http://localhost:3000/api';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -32,26 +31,23 @@ export const HomeScreen = () => {
       setLoading(true);
 
       // Fetch Categories
-      const categoriesRes = await fetch(`${API_URL}/categories`);
-      const categoriesData = await categoriesRes.json();
-      if (categoriesData.success) {
-        setCategories(categoriesData.data);
-      }
+      const categoriesRes = await axiosInstance.get(API_ENDPOINTS.CATEGORIES.LIST);
+      const categoriesData = categoriesRes.data as { success?: boolean; data?: unknown };
+      if (categoriesData?.success) setCategories((categoriesData as any).data ?? []);
 
       // Fetch Featured Courses (Carousel)
-      const featuredRes = await fetch(`${API_URL}/courses?sortBy=popular&limit=5`);
-      const featuredData = await featuredRes.json();
-      if (featuredData.success) {
-        setFeaturedCourses(featuredData.data.courses);
-      }
+      const featuredRes = await axiosInstance.get(API_ENDPOINTS.COURSES.LIST, {
+        params: { sortBy: 'popular', limit: 5 },
+      });
+      const featuredData = featuredRes.data as { success?: boolean; data?: { courses?: unknown[] } };
+      if (featuredData?.success) setFeaturedCourses(featuredData?.data?.courses ?? []);
 
       // Fetch Trending Courses
-      const trendingRes = await fetch(`${API_URL}/courses?sortBy=newest&limit=4`);
-      const trendingData = await trendingRes.json();
-      if (trendingData.success) {
-        setTrendingCourses(trendingData.data.courses);
-      }
-
+      const trendingRes = await axiosInstance.get(API_ENDPOINTS.COURSES.LIST, {
+        params: { sortBy: 'newest', limit: 4 },
+      });
+      const trendingData = trendingRes.data as { success?: boolean; data?: { courses?: unknown[] } };
+      if (trendingData?.success) setTrendingCourses(trendingData?.data?.courses ?? []);
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {
