@@ -71,6 +71,12 @@ export const CourseDetailScreen = () => {
 
   const canReview = !!currentUserId && isEnrolled;
 
+  // Tính lại rating hiển thị dựa trên list reviews hiện tại (sau khi tạo / sửa / xóa)
+  const totalRatings = reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+  const reviewsCount = reviews.length;
+  const averageRating =
+    reviewsCount > 0 ? Number((totalRatings / reviewsCount).toFixed(1)) : Number(course?.averageRating ?? 0);
+
   // Khi myReview thay đổi (sau khi gửi lần đầu hoặc reload), đồng bộ lại rating/comment trong form
   useEffect(() => {
     if (myReview) {
@@ -166,26 +172,18 @@ export const CourseDetailScreen = () => {
 
   const handleDeleteReview = async () => {
     if (!myReview || !courseId) return;
-    Alert.alert('Xóa đánh giá', 'Bạn có chắc muốn xóa đánh giá này?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await axiosInstance.delete(`/reviews/${myReview._id}`);
-            setReviews(prev => prev.filter(r => r._id !== myReview._id));
-            setRating(0);
-            setComment('');
-                setMyReview(null);
-            setEditing(false);
-          } catch (err: any) {
-            const msg = err?.response?.data?.message ?? 'Không xóa được đánh giá.';
-            Alert.alert('Lỗi', msg);
-          }
-        },
-      },
-    ]);
+    try {
+      await axiosInstance.delete(`/reviews/${myReview._id}`);
+      setReviews(prev => prev.filter(r => r._id !== myReview._id));
+      setRating(0);
+      setComment('');
+      setMyReview(null);
+      setEditing(false);
+      Alert.alert('Thành công', 'Đã xóa đánh giá.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Không xóa được đánh giá.';
+      Alert.alert('Lỗi', msg);
+    }
   };
 
   const handleEnrollPress = async () => {
@@ -408,18 +406,18 @@ export const CourseDetailScreen = () => {
   const renderReviews = () => (
     <View style={styles.tabContent}>
       <View style={styles.ratingSummary}>
-         <Text style={styles.ratingBig}>{course.averageRating}</Text>
+         <Text style={styles.ratingBig}>{averageRating}</Text>
          <View style={styles.ratingStars}>
             {[1,2,3,4,5].map(i => (
               <Ionicons 
                 key={i} 
                 name="star" 
                 size={24} 
-                color={i <= Math.round(course.averageRating) ? COLORS.secondary : COLORS.gray200} 
+                color={i <= Math.round(averageRating) ? COLORS.secondary : COLORS.gray200} 
               />
             ))}
          </View>
-         <Text style={styles.totalReviews}>Based on {course.reviewCount || 0} reviews</Text>
+         <Text style={styles.totalReviews}>Based on {reviewsCount} reviews</Text>
          {myReview && (
            <Text style={[styles.totalReviews, { marginTop: SPACING[1] }]}>
              Bạn đã đánh giá: {myReview.rating}★

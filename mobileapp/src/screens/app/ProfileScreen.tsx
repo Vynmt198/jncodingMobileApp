@@ -20,6 +20,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Button, Input } from '@/components/ui';
 import { useGetProfileQuery, useUpdateProfileMutation, useLogoutMutation } from '@/store/api/authApi';
+import { useGetMyCertificatesQuery } from '@/store/api/certificateApi';
 import { logout, updateUser, setPendingAuthRoute } from '@/store/slices/authSlice';
 import { removeSecureItem } from '@/utils/secureStorage';
 import { TOKEN_KEY } from '@/api/axiosInstance';
@@ -32,6 +33,9 @@ export const ProfileScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const token = useAppSelector(s => s.auth.token);
+  const { data: certificates, isLoading: loadingCertificates } = useGetMyCertificatesQuery(undefined, {
+    skip: !token,
+  });
   const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, {
     skip: !token,
   });
@@ -223,6 +227,31 @@ export const ProfileScreen = () => {
           <Text style={styles.paymentHistoryRowText}> Lịch sử thanh toán</Text>
           <Text style={styles.paymentHistoryRowArrow}>›</Text>
         </TouchableOpacity>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Chứng chỉ của bạn</Text>
+        </View>
+        {loadingCertificates ? (
+          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: SPACING[4] }} />
+        ) : !certificates || certificates.length === 0 ? (
+          <Text style={styles.emptyCertificatesText}>Bạn chưa có chứng chỉ nào.</Text>
+        ) : (
+          certificates.map(cert => {
+            const course: any = (cert as any).courseId ?? null;
+            const courseTitle = course?.title ?? 'Khóa học';
+            const issuedAt = (cert as any).issuedAt;
+            return (
+              <View key={(cert as any)._id} style={styles.certificateCard}>
+                <Text style={styles.certificateCourseTitle}>{courseTitle}</Text>
+                <Text style={styles.certificateDate}>
+                  Cấp ngày:{' '}
+                  {issuedAt ? new Date(issuedAt).toLocaleDateString('vi-VN') : '—'}
+                </Text>
+              </View>
+            );
+          })
+        )}
+
         <Button
           title={updating ? 'Đang lưu...' : 'Lưu thay đổi'}
           onPress={handleSave}
@@ -280,9 +309,10 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING[8],
   },
   title: {
-    ...TYPOGRAPHY.h2,
+    ...TYPOGRAPHY.h3,
     color: COLORS.textPrimary,
-    marginBottom: SPACING[6],
+    fontWeight: '700',
+    marginBottom: SPACING[5],
   },
   errorHint: {
     ...TYPOGRAPHY.bodyMedium,
@@ -371,6 +401,38 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: COLORS.primary,
     fontWeight: '700',
+  },
+  sectionHeader: {
+    marginTop: SPACING[4],
+    marginBottom: SPACING[2],
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+  },
+  certificateCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: SPACING[4],
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING[3],
+  },
+  certificateCourseTitle: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+    marginBottom: SPACING[1],
+  },
+  certificateDate: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  emptyCertificatesText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING[4],
   },
   logoutRow: {
     marginTop: SPACING[2],

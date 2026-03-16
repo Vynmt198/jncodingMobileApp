@@ -16,6 +16,7 @@ import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { Button } from '@/components/ui';
 import { useGetQuizResultsQuery } from '@/store/api/quizzesApi';
 import { useGetCourseLearningQuery } from '@/store/api/coursesApi';
+import axiosInstance from '@/api/axiosInstance';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
 
@@ -77,12 +78,31 @@ export const QuizResultScreen = () => {
     }
   };
 
-  const handleCompleteCourse = () => {
-    Alert.alert(
-      'Chúc mừng!',
-      'Bạn đã hoàn thành khóa học.',
-      [{ text: 'OK', onPress: () => (courseId ? navigation.navigate(ROUTES.COURSE_DETAIL, { courseId }) : navigation.goBack()) }]
-    );
+  const handleCompleteCourse = async () => {
+    if (!courseId) {
+      Alert.alert('Thông báo', 'Không tìm thấy khóa học để cấp chứng chỉ.');
+      return;
+    }
+
+    try {
+      await axiosInstance.post('/certificates/generate', { courseId });
+      Alert.alert(
+        'Chúc mừng!',
+        'Bạn đã hoàn thành khóa học và (nếu đủ điều kiện) chứng chỉ đã được cấp. Vào Hồ sơ → Chứng chỉ của bạn để xem.',
+        [
+          {
+            text: 'Xem khóa học',
+            onPress: () => navigation.navigate(ROUTES.COURSE_DETAIL, { courseId }),
+          },
+        ]
+      );
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ??
+        err?.data?.message ??
+        'Không cấp được chứng chỉ. Vui lòng thử lại.';
+      Alert.alert('Lỗi', msg);
+    }
   };
 
   if (!attemptId) {

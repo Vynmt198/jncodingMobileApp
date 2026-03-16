@@ -34,8 +34,8 @@ export const quizzesApi = createApi({
       transformResponse: (response: QuizAttemptResponse) => response.data,
     }),
 
-    /** GET /api/quizzes/:id/results — lịch sử kết quả (nếu backend hỗ trợ) */
-    getResults: builder.query<unknown, string>({
+    /** GET kết quả quiz theo attemptId */
+    getQuizResults: builder.query<unknown, string>({
       query: id => ({
         url: API_ENDPOINTS.QUIZZES.RESULTS(id),
         method: 'GET',
