@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input, FadeInView } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { useRegisterMutation } from '@/store/api/authApi';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
@@ -44,7 +44,12 @@ const getErrorMessage = (err: unknown): string => {
     (e?.payload as Record<string, unknown>)?.data;
   const status = (e?.status as number | undefined) ?? (e?.error as Record<string, unknown>)?.status;
 
-  if (e?.status === undefined && status === undefined && (!data || typeof data === 'string')) {
+  // Chỉ coi là lỗi mạng khi status không có và message thực sự là lỗi kết nối
+  if (
+    e?.status === undefined &&
+    status === undefined &&
+    (data === undefined || data === null || data === 'Network Error')
+  ) {
     return 'Không thể kết nối máy chủ. Kiểm tra mạng và API_BASE_URL trong .env.';
   }
 
@@ -142,13 +147,18 @@ export const RegisterScreen = () => {
     }
   };
 
+  const Container = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
+
   return (
-    <KeyboardAvoidingView
+    <Container
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      {...(Platform.OS === 'ios'
+        ? {
+            behavior: 'padding' as const,
+            keyboardVerticalOffset: 60,
+          }
+        : {})}
     >
-      <FadeInView style={{ flex: 1 }} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
@@ -157,44 +167,65 @@ export const RegisterScreen = () => {
           <Text style={styles.title}>Đăng ký</Text>
         <Text style={styles.subtitle}>Tạo tài khoản để bắt đầu học</Text>
 
-        <Input
-          label="Họ và tên"
-          placeholder="Nguyễn Văn A"
-          value={fullName}
-          onChangeText={setFullName}
-          containerStyle={styles.input}
-        />
-        <Input
-          label="Email"
-          placeholder="email@example.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          containerStyle={styles.input}
-        />
-        <Input
-          label="Mật khẩu"
-          placeholder="Tối thiểu 8 ký tự, có chữ hoa, thường và số"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          containerStyle={styles.input}
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Họ và tên</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Nguyễn Văn A"
+            placeholderTextColor={COLORS.gray400}
+            value={fullName}
+            onChangeText={setFullName}
+            returnKeyType="next"
+            blurOnSubmit={false}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Email</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="email@example.com"
+            placeholderTextColor={COLORS.gray400}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="next"
+            blurOnSubmit={false}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Mật khẩu</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Tối thiểu 8 ký tự, có chữ hoa, thường và số"
+            placeholderTextColor={COLORS.gray400}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            returnKeyType="next"
+            blurOnSubmit={false}
+          />
+        </View>
         {password.length > 0 && (
           <View style={styles.strengthWrap}>
             <View style={[styles.strengthBar, { width: `${(strength.level / 4) * 100}%` }]} />
             <Text style={styles.strengthText}>{strength.label}</Text>
           </View>
         )}
-        <Input
-          label="Xác nhận mật khẩu"
-          placeholder="Nhập lại mật khẩu"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          containerStyle={styles.input}
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Xác nhận mật khẩu</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Nhập lại mật khẩu"
+            placeholderTextColor={COLORS.gray400}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            returnKeyType="done"
+          />
+        </View>
         {error ? <Text style={styles.errText}>{error}</Text> : null}
 
         <TouchableOpacity
@@ -226,8 +257,7 @@ export const RegisterScreen = () => {
           </TouchableOpacity>
         </View>
         </ScrollView>
-      </FadeInView>
-    </KeyboardAvoidingView>
+    </Container>
   );
 };
 
@@ -254,6 +284,23 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: SPACING[4],
+  },
+  inputGroup: {
+    marginBottom: SPACING[4],
+  },
+  inputLabel: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING[2],
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: SPACING[3],
+    height: 48,
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.textPrimary,
   },
   strengthWrap: {
     flexDirection: 'row',

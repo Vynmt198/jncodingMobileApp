@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
-import { Button, Input, FadeInView } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { useLoginMutation } from '@/store/api/authApi';
 import { setCredentials } from '@/store/slices/authSlice';
 import { TOKEN_KEY } from '@/api/axiosInstance';
@@ -15,6 +15,49 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const REMEMBER_EMAIL_KEY = '@remember_email';
 const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
+
+/** Map thông báo lỗi đăng nhập tiếng Anh từ backend sang tiếng Việt thân thiện hơn */
+const mapLoginErrorToVietnamese = (message: string): string => {
+  const map: Record<string, string> = {
+    'Invalid email or password': 'Email hoặc mật khẩu không đúng',
+    'Invalid credentials': 'Email hoặc mật khẩu không đúng',
+    'User not found': 'Tài khoản không tồn tại',
+    'Account is inactive': 'Tài khoản của bạn chưa được kích hoạt hoặc đã bị khóa',
+    'Please provide a valid email address': 'Email không hợp lệ',
+  };
+  return map[message] ?? message;
+};
+
+/** Chuẩn hóa error object từ RTK Query / axios cho màn Login */
+const getLoginErrorMessage = (err: unknown): string => {
+  const e = err as Record<string, unknown>;
+  const data =
+    (e?.data as Record<string, unknown> | undefined) ??
+    (e?.error as Record<string, unknown>)?.data ??
+    (e?.payload as Record<string, unknown>)?.data;
+  const status = (e?.status as number | undefined) ?? (e?.error as Record<string, unknown>)?.status;
+
+  // Không có status + data là "Network Error" → lỗi kết nối thực sự (timeout, DNS...)
+  if (status === undefined && (data === undefined || data === null || data === 'Network Error')) {
+    return 'Không thể kết nối máy chủ. Kiểm tra mạng và EXPO_PUBLIC_API_BASE_URL / API_BASE_URL trong file .env của mobileapp.';
+  }
+
+  if (data && typeof data === 'object') {
+    const body = data as { message?: string; errors?: Array<{ message?: string }> };
+    const msg = body.message;
+    const errors = body.errors;
+    if (Array.isArray(errors) && errors.length > 0 && errors[0]?.message) {
+      return mapLoginErrorToVietnamese(errors[0].message);
+    }
+    if (msg) return mapLoginErrorToVietnamese(msg);
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  return 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin hoặc thử lại sau.';
+};
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -64,7 +107,7 @@ export const LoginScreen = () => {
         await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
     } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Đăng nhập thất bại. Vui lòng thử lại.';
+      const msg = getLoginErrorMessage(err);
       setError(msg);
       Alert.alert('Đăng nhập thất bại', msg);
     }
@@ -76,13 +119,18 @@ export const LoginScreen = () => {
     Alert.alert('Thông báo', msg);
   };
 
+  const Container = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
+
   return (
-    <KeyboardAvoidingView
+    <Container
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      {...(Platform.OS === 'ios'
+        ? {
+            behavior: 'padding' as const,
+            keyboardVerticalOffset: 60,
+          }
+        : {})}
     >
-      <FadeInView style={styles.fadeWrap} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
@@ -91,24 +139,34 @@ export const LoginScreen = () => {
           <Text style={styles.title}>Đăng nhập</Text>
         <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
 
-        <Input
-          label="Email"
-          placeholder="email@example.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          containerStyle={styles.input}
-        />
-        <Input
-          label="Mật khẩu"
-          placeholder="Nhập mật khẩu"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          containerStyle={styles.input}
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Email</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="email@example.com"
+            placeholderTextColor={COLORS.gray400}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="next"
+            blurOnSubmit={false}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Mật khẩu</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Nhập mật khẩu"
+            placeholderTextColor={COLORS.gray400}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            returnKeyType="done"
+          />
+        </View>
         {error ? <Text style={styles.errText}>{error}</Text> : null}
 
         <TouchableOpacity
@@ -158,8 +216,7 @@ export const LoginScreen = () => {
           </TouchableOpacity>
         </View>
         </ScrollView>
-      </FadeInView>
-    </KeyboardAvoidingView>
+    </Container>
   );
 };
 
@@ -187,6 +244,23 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: SPACING[4],
+  },
+  inputGroup: {
+    marginBottom: SPACING[4],
+  },
+  inputLabel: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING[2],
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: SPACING[3],
+    height: 48,
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.textPrimary,
   },
   errText: {
     ...TYPOGRAPHY.caption,

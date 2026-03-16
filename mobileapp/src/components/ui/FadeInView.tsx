@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, ViewStyle, Platform } from 'react-native';
+import { Animated, ViewStyle } from 'react-native';
 
-/** Trên web useNativeDriver: true có thể khiến animation không chạy → nội dung mãi opacity 0 (màn trắng). */
-const useNativeDriver = Platform.OS !== 'web';
+/** 
+ * Không bật useNativeDriver cho animation bọc toàn bộ màn có TextInput,
+ * tránh các glitch liên quan tới focus / touch trên một số thiết bị/emulator Android.
+ */
+const useNativeDriver = false;
 
 interface FadeInViewProps {
   children: React.ReactNode;

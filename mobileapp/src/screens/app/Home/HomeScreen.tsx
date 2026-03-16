@@ -9,8 +9,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useGetProfileQuery } from '@/store/api/authApi';
 import { useGetMyEnrollmentsQuery } from '@/store/api/enrollmentsApi';
 
-// Base URL for the local backend
-const API_URL = 'http://localhost:3000/api';
+// Dùng cùng base URL với axiosInstance: ưu tiên EXPO_PUBLIC_API_BASE_URL, sau đó API_BASE_URL
+const API_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ??
+  process.env.API_BASE_URL ??
+  'http://localhost:3000/api';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
