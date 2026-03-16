@@ -4,8 +4,6 @@ const Progress = require('../models/Progress');
 const Lesson = require('../models/Lesson');
 const QuizAttempt = require('../models/QuizAttempt');
 const Quiz = require('../models/Quiz');
-const Assignment = require('../models/Assignment');
-const AssignmentSubmission = require('../models/AssignmentSubmission');
 const { randomUUID } = require('crypto');
 
 // Assignment is passed when score >= maxScore * ASSIGNMENT_PASS_PERCENT
@@ -45,78 +43,35 @@ exports.generateCertificate = async (req, res, next) => {
             });
         }
 
-        // Check 100% lesson completion (BR16)
-        const [allLessons, completedProgress] = await Promise.all([
-            Lesson.find({ courseId }),
-            Progress.find({ userId, courseId, isCompleted: true }),
-        ]);
-
+        // Chỉ yêu cầu: có lesson (nếu có) và pass tất cả quiz của khóa (không bắt 100% lesson completion)
+        const allLessons = await Lesson.find({ courseId });
         if (allLessons.length === 0) {
             return res.status(400).json({ success: false, message: 'This course has no lessons.' });
         }
 
-        const completedLessonIds = new Set(completedProgress.map((p) => p.lessonId.toString()));
-        const allCompleted = allLessons.every((l) => completedLessonIds.has(l._id.toString()));
-
-        if (!allCompleted) {
-            const completionRate = Math.round((completedLessonIds.size / allLessons.length) * 100);
-            return res.status(400).json({
-                success: false,
-                message: `You must complete 100% of the course lessons. Current progress: ${completionRate}%.`,
-            });
-        }
-
-        // Check all quizzes passed (BR16)
+        // App chỉ yêu cầu: đã pass ít nhất 1 quiz của khóa (nếu khóa có quiz)
         const quizLessons = allLessons.filter((l) => l.type === 'quiz');
+        let quizIds = [];
         if (quizLessons.length > 0) {
             const quizzes = await Quiz.find({ lessonId: { $in: quizLessons.map((l) => l._id) } });
-            const quizIds = quizzes.map((q) => q._id);
+            quizIds = quizzes.map((q) => q._id);
+        }
 
-            // Get best attempt per quiz (must have at least one passed attempt)
+        if (quizIds.length > 0) {
             const passedAttempts = await QuizAttempt.find({
                 userId,
                 quizId: { $in: quizIds },
                 isPassed: true,
             });
-
-            const passedQuizIds = new Set(passedAttempts.map((a) => a.quizId.toString()));
-            const allQuizzesPassed = quizIds.every((id) => passedQuizIds.has(id.toString()));
-
-            if (!allQuizzesPassed) {
+            if (passedAttempts.length === 0) {
                 return res.status(400).json({
                     success: false,
-                    message: 'You must pass all quizzes in the course to receive a certificate.',
+                    message: 'You must pass at least one quiz in this course to receive a certificate.',
                 });
             }
         }
 
-        // Check all assignments passed (business rule: Pass Quiz → Assignment → Certificate)
-        const assignments = await Assignment.find({ courseId, isActive: true });
-        if (assignments.length > 0) {
-            for (const assignment of assignments) {
-                const submission = await AssignmentSubmission.findOne({
-                    assignmentId: assignment._id,
-                    userId,
-                });
-
-                const maxScore = assignment.maxScore || 100;
-                const passScore = maxScore * ASSIGNMENT_PASS_PERCENT;
-
-                const passed =
-                    submission &&
-                    submission.status === 'graded' &&
-                    submission.score != null &&
-                    submission.score >= passScore;
-
-                if (!passed) {
-                    return res.status(400).json({
-                        success: false,
-                        message:
-                            'You must pass all assignments in the course to receive a certificate. Complete and pass every assignment first.',
-                    });
-                }
-            }
-        }
+        // BỎ QUA CHECK ASSIGNMENT: app mobile chỉ yêu cầu hoàn thành bài học + pass tất cả quiz
 
         // Generate unique certificate ID
         const certificateId = `CERT-${randomUUID().replace(/-/g, '').toUpperCase().slice(0, 16)}`;
