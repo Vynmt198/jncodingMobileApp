@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,14 @@ import {
   Alert,
   Platform,
   Pressable,
+  ScrollView,
   type ViewStyle,
 } from 'react-native';
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '@/constants/theme';
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOW } from '@/constants/theme';
 import { Button, Card, Modal } from '@/components/ui';
 import type { AppScreenProps } from '@/types/navigation.types';
 import { ROUTES } from '@/constants/routes';
+import { Ionicons } from '@expo/vector-icons';
 import {
   useGetUsersQuery,
   useUpdateUserRoleMutation,
@@ -29,12 +31,40 @@ const PAGE_SIZE = 10;
 const ROLE_OPTIONS: Array<'all' | 'learner' | 'instructor' | 'admin'> = ['all', 'learner', 'instructor', 'admin'];
 const STATUS_OPTIONS: Array<'all' | 'active' | 'suspended'> = ['all', 'active', 'suspended'];
 
+const ROLE_LABELS: Record<string, string> = {
+  all: 'Tất cả',
+  learner: 'Học viên',
+  instructor: 'Giảng viên',
+  admin: 'Quản trị',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  all: 'Tất cả',
+  active: 'Hoạt động',
+  suspended: 'Đã khóa',
+};
+
+const ROLE_ICONS: Record<string, string> = {
+  all: 'people',
+  learner: 'school',
+  instructor: 'easel',
+  admin: 'shield-checkmark',
+};
+
+const STATUS_ICONS: Record<string, string> = {
+  all: 'ellipse',
+  active: 'checkmark-circle',
+  suspended: 'lock-closed',
+};
+
 export const AdminUserManagementScreen: React.FC<ScreenProps> = ({ navigation }) => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'learner' | 'instructor' | 'admin'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [isFocused, setIsFocused] = useState(false);
+  const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
   const params = {
     page,
@@ -50,34 +80,34 @@ export const AdminUserManagementScreen: React.FC<ScreenProps> = ({ navigation })
 
   const users = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
+  const totalUsers = data?.total ?? 0;
   const hasMore = page < totalPages;
 
   const [roleModalUser, setRoleModalUser] = useState<AdminUserListItem | null>(null);
   const [statusModalUser, setStatusModalUser] = useState<AdminUserListItem | null>(null);
 
-  const handleSearchSubmit = useCallback(() => {
-    setSearchDebounced(search);
-    setPage(1);
-  }, [search]);
+  // Live search with debounce
+  const handleSearchChange = useCallback((text: string) => {
+    setSearch(text);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setSearchDebounced(text);
+      setPage(1);
+    }, 400);
+  }, []);
 
-  const renderFilterChip = (
-    key: string,
-    label: string,
-    value: string,
-    active: boolean,
-    onPress: () => void
-  ) => (
-    <TouchableOpacity
-      key={key}
-      onPress={() => {
-        onPress();
-        setPage(1);
-      }}
-      style={[styles.filterChip, active && styles.filterChipActive]}
-    >
-      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
-    </TouchableOpacity>
-  );
+  // Cleanup timer
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearch('');
+    setSearchDebounced('');
+    setPage(1);
+  }, []);
 
   const handleRoleChange = (user: AdminUserListItem) => {
     setRoleModalUser(user);
@@ -181,50 +211,104 @@ export const AdminUserManagementScreen: React.FC<ScreenProps> = ({ navigation })
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Text style={styles.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={22} color={COLORS.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quản lý người dùng</Text>
-      </View>
-      <Text style={styles.subtitle}>Lọc, phân trang và cập nhật vai trò / trạng thái</Text>
-
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Tìm theo tên, email..."
-          placeholderTextColor={COLORS.gray400}
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          onSubmitEditing={handleSearchSubmit}
-          returnKeyType="search"
-        />
-        <Button title="Tìm" size="sm" onPress={handleSearchSubmit} style={styles.searchBtn} />
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerTitle}>Quản lý người dùng</Text>
+          <Text style={styles.subtitle}>Lọc, tìm kiếm và quản lý tài khoản</Text>
+        </View>
       </View>
 
-      <View style={styles.filterRow}>
-        {ROLE_OPTIONS.map(r =>
-          renderFilterChip(
-            `role-${r}`,
-            r === 'all' ? 'Tất cả vai trò' : r,
-            r,
-            roleFilter === r,
-            () => setRoleFilter(r)
-          )
+      {/* Search & Filter Card */}
+      <View style={styles.filterCard}>
+        {/* Live Search Input */}
+        <View style={[styles.searchWrapper, isFocused && styles.searchWrapperFocused]}>
+          <Ionicons
+            name="search"
+            size={18}
+            color={isFocused ? COLORS.primary : COLORS.gray400}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            placeholder="Tìm theo tên, email..."
+            placeholderTextColor={COLORS.gray400}
+            style={styles.searchInput}
+            value={search}
+            onChangeText={handleSearchChange}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} style={styles.clearBtn} activeOpacity={0.6}>
+              <Ionicons name="close-circle" size={18} color={COLORS.gray400} />
+            </TouchableOpacity>
+          )}
+          {isFetching && search.length > 0 && (
+            <ActivityIndicator size="small" color={COLORS.primary} style={{ marginLeft: SPACING[2] }} />
+          )}
+        </View>
+
+        {/* Role Filter — Compact Chips */}
+        <View style={styles.filterSection}>
+          <Text style={styles.filterLabel}>Vai trò</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+            {ROLE_OPTIONS.map((r) => {
+              const active = roleFilter === r;
+              return (
+                <TouchableOpacity
+                  key={`role-${r}`}
+                  onPress={() => { setRoleFilter(r); setPage(1); }}
+                  style={[styles.chip, active && styles.chipActive]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {ROLE_LABELS[r]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Status Filter — Compact Chips */}
+        <View style={styles.filterSection}>
+          <Text style={styles.filterLabel}>Trạng thái</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+            {STATUS_OPTIONS.map((s) => {
+              const active = statusFilter === s;
+              return (
+                <TouchableOpacity
+                  key={`status-${s}`}
+                  onPress={() => { setStatusFilter(s); setPage(1); }}
+                  style={[styles.chip, active && styles.chipActive]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {STATUS_LABELS[s]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Result count */}
+        {!isLoading && (
+          <View style={styles.resultCountRow}>
+            <Ionicons name="people-outline" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.resultCountText}>
+              {totalUsers} người dùng
+              {searchDebounced.trim() ? ` cho "${searchDebounced}"` : ''}
+            </Text>
+          </View>
         )}
       </View>
-      <View style={styles.filterRow}>
-        {STATUS_OPTIONS.map(s =>
-          renderFilterChip(
-            `status-${s}`,
-            s === 'all' ? 'Tất cả trạng thái' : s === 'active' ? 'Hoạt động' : 'Đã khóa',
-            s,
-            statusFilter === s,
-            () => setStatusFilter(s)
-          )
-        )}
-      </View>
 
+      {/* Main Content */}
       {isLoading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -238,7 +322,10 @@ export const AdminUserManagementScreen: React.FC<ScreenProps> = ({ navigation })
             renderItem={renderUserItem}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>Không có người dùng nào.</Text>
+              <View style={styles.emptyContainer}>
+                <Ionicons name="person-outline" size={60} color={COLORS.gray200} />
+                <Text style={styles.emptyText}>Không có người dùng nào.</Text>
+              </View>
             }
             ListFooterComponent={
               isFetching && page > 1 ? (
@@ -270,7 +357,7 @@ export const AdminUserManagementScreen: React.FC<ScreenProps> = ({ navigation })
         </>
       )}
 
-      {/* Modal đổi vai trò (web: Alert không hiện đủ nút, không chọn được Admin) */}
+      {/* Modal đổi vai trò */}
       <Modal
         visible={!!roleModalUser}
         onClose={() => setRoleModalUser(null)}
@@ -304,7 +391,7 @@ export const AdminUserManagementScreen: React.FC<ScreenProps> = ({ navigation })
                       ]}
                     >
                       {role.toUpperCase()}
-                      {isCurrentRole ? '': ''}
+                      {isCurrentRole ? '' : ''}
                     </Text>
                   </Pressable>
                 );
@@ -317,13 +404,13 @@ export const AdminUserManagementScreen: React.FC<ScreenProps> = ({ navigation })
         ) : null}
       </Modal>
 
-      {/* Modal xác nhận khóa / mở khóa tài khoản (web) */}
+      {/* Modal xác nhận khóa / mở khóa tài khoản */}
       <Modal
         visible={!!statusModalUser}
         onClose={() => setStatusModalUser(null)}
         title={
           statusModalUser &&
-          (statusModalUser.status === 'suspended' || statusModalUser.isActive === false)
+            (statusModalUser.status === 'suspended' || statusModalUser.isActive === false)
             ? 'Mở khóa tài khoản'
             : 'Khóa tài khoản'
         }
@@ -356,70 +443,150 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING[6],
-    paddingTop: SPACING[8],
+    paddingTop: Platform.OS === 'ios' ? 56 : 40,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING[3],
-    marginBottom: SPACING[2],
+    paddingHorizontal: SPACING[6],
+    marginBottom: SPACING[4],
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 22, color: COLORS.textPrimary, fontWeight: '700', marginTop: -2 },
-  headerTitle: { ...TYPOGRAPHY.h3, color: COLORS.textPrimary, fontWeight: '700', flex: 1 },
-  subtitle: { ...TYPOGRAPHY.bodySmall, color: COLORS.textSecondary, marginTop: 4 },
-  searchContainer: {
+  headerTextWrap: {
+    marginLeft: SPACING[3],
+    flex: 1,
+  },
+  headerTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+  },
+  subtitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+
+  /* ── Filter Card ─────────────────────────────────────────── */
+  filterCard: {
+    marginHorizontal: SPACING[6],
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: SPACING[5],
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOW.sm,
+    marginBottom: SPACING[4],
+  },
+
+  /* Search */
+  searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING[2],
-    marginBottom: SPACING[3],
+    backgroundColor: COLORS.background,
+    borderRadius: 14,
+    paddingHorizontal: SPACING[4],
+    height: 48,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  searchWrapperFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
+    ...SHADOW.md,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+  },
+  searchIcon: {
+    marginRight: SPACING[3],
   },
   searchInput: {
     flex: 1,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: SPACING[4],
-    paddingVertical: SPACING[3],
-    backgroundColor: COLORS.surface,
     ...TYPOGRAPHY.bodySmall,
     color: COLORS.textPrimary,
+    fontWeight: '500',
+    // @ts-ignore - Web outline removal
+    outlineStyle: 'none' as any,
   },
-  searchBtn: { minWidth: 60 },
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING[2],
+  clearBtn: {
+    padding: 4,
+    marginLeft: SPACING[2],
+  },
+
+  /* Filter sections */
+  filterSection: {
+    marginTop: SPACING[4],
+  },
+  filterLabel: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.primary,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: SPACING[2],
   },
-  filterChip: {
-    paddingHorizontal: SPACING[3],
+  chipRow: {
+    flexDirection: 'row',
+    gap: SPACING[2],
+  },
+  chip: {
+    paddingHorizontal: SPACING[4],
     paddingVertical: SPACING[2],
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
+    backgroundColor: COLORS.background,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
   },
-  filterChipActive: {
-    backgroundColor: COLORS.primaryLight,
+  chipActive: {
+    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  filterChipText: { ...TYPOGRAPHY.caption, color: COLORS.textSecondary },
-  filterChipTextActive: { color: COLORS.primaryDark, fontWeight: '600' },
-  listContent: { paddingVertical: SPACING[4], paddingBottom: SPACING[10] },
+  chipText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  chipTextActive: {
+    color: COLORS.white,
+    fontWeight: '700',
+  },
+
+  /* Result count */
+  resultCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING[4],
+    paddingTop: SPACING[3],
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    gap: SPACING[2],
+  },
+  resultCountText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+
+  /* List */
+  listContent: { paddingHorizontal: SPACING[6], paddingVertical: SPACING[2], paddingBottom: SPACING[10] },
   loadingWrap: { paddingVertical: SPACING[10], alignItems: 'center' },
   footerLoader: { paddingVertical: SPACING[2] },
-  emptyText: { ...TYPOGRAPHY.bodySmall, color: COLORS.textSecondary, textAlign: 'center', paddingVertical: SPACING[6] },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 80,
+  },
+  emptyText: { ...TYPOGRAPHY.bodySmall, color: COLORS.textSecondary, textAlign: 'center', marginTop: SPACING[3] },
+
+  /* User Card */
   userCard: { marginBottom: SPACING[4] },
   userHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING[3] },
   avatarCircle: {
@@ -456,6 +623,8 @@ const styles = StyleSheet.create({
   },
   actionButton: { flex: 1, marginRight: SPACING[2] },
   actionBtnWeb: (Platform.OS === 'web' ? { cursor: 'pointer' as const } : {}) as ViewStyle,
+
+  /* Modals */
   modalMessage: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textPrimary, marginBottom: SPACING[4] },
   roleOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[2], marginBottom: SPACING[4] },
   roleOptionBtn: {
@@ -471,12 +640,15 @@ const styles = StyleSheet.create({
   roleOptionText: { ...TYPOGRAPHY.label, color: COLORS.textPrimary, fontWeight: '600' },
   roleOptionTextDisabled: { color: COLORS.gray500 },
   modalFooter: { flexDirection: 'row', justifyContent: 'flex-end', gap: SPACING[2], marginTop: SPACING[2] },
+
+  /* Pagination */
   pagination: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING[3],
     paddingVertical: SPACING[4],
+    paddingHorizontal: SPACING[6],
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
