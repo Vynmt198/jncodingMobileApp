@@ -121,6 +121,8 @@ export const API_ENDPOINTS = {
     DISCUSSION_SUMMARY: '/instructor/discussions/summary',
     MY_COURSES: '/instructor/courses',
     CREATE_COURSE: '/instructor/courses',
+    QUIZ_BY_LESSON: (lessonId: string) => `/instructor/lessons/${lessonId}/quiz`,
+    QUIZ_UPDATE: (quizId: string) => `/instructor/quizzes/${quizId}`,
   },
 
   // Upload

@@ -158,10 +158,10 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   placeholderText: {
-    color: COLORS.gray400,
+    color: COLORS.gray100,
   },
   chevron: {
-    color: COLORS.gray400,
+    color: COLORS.gray100,
     fontSize: 16,
   },
   backdrop: {

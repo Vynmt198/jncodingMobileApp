@@ -134,7 +134,8 @@ export interface Quiz {
 }
 
 export interface QuizAttemptRequest {
-  answers: Array<{ questionIndex: number; answer: unknown }>;
+  /** Backend hiện tại nhận answers theo thứ tự câu hỏi (mảng primitive). */
+  answers: unknown[];
   timeSpent?: number;
 }
 
