@@ -14,12 +14,20 @@ export type AuthStackParamList = {
   [ROUTES.NEW_PASSWORD]: { email: string; otp: string };
 };
 
-// Bottom Tab params
+// Bottom Tab params (learner + admin + instructor tab names)
 export type BottomTabParamList = {
   [ROUTES.HOME]: undefined;
   [ROUTES.SEARCH]: { query?: string } | undefined;
   [ROUTES.MY_COURSES]: undefined;
   [ROUTES.PROFILE]: undefined;
+  [ROUTES.ADMIN_DASHBOARD]: undefined;
+  [ROUTES.ADMIN_USER_MANAGEMENT]: undefined;
+  [ROUTES.ADMIN_COURSE_APPROVAL]: undefined;
+  [ROUTES.ADMIN_LESSONS]: undefined;
+  [ROUTES.ADMIN_REVIEWS]: undefined;
+  [ROUTES.INSTRUCTOR_DASHBOARD]: undefined;
+  [ROUTES.INSTRUCTOR_CREATE_COURSE]: undefined;
+  [ROUTES.INSTRUCTOR_ANALYTICS]: undefined;
 };
 
 // App Stack params (wrapping bottom tabs + detail screens)
@@ -35,8 +43,11 @@ export type AppStackParamList = {
   [ROUTES.QUIZ_START]: { quizId: string; courseId?: string; lessonId?: string };
   [ROUTES.QUIZ_QUESTION]: { quizId: string; courseId?: string; lessonId?: string };
   [ROUTES.QUIZ_RESULT]: { attemptId: string; quizId?: string; courseId?: string; lessonId?: string };
+  [ROUTES.ADMIN_DASHBOARD]: undefined;
   [ROUTES.ADMIN_USER_MANAGEMENT]: undefined;
   [ROUTES.ADMIN_COURSE_APPROVAL]: undefined;
+  [ROUTES.ADMIN_LESSONS]: undefined;
+  [ROUTES.ADMIN_REVIEWS]: undefined;
   [ROUTES.INSTRUCTOR_DASHBOARD]: undefined;
   [ROUTES.INSTRUCTOR_ANALYTICS]: undefined;
   [ROUTES.INSTRUCTOR_DISCUSSIONS]: undefined;

@@ -77,6 +77,10 @@ const validateUpdateProfile = [
         .trim()
         .notEmpty().withMessage('Full name cannot be empty')
         .isLength({ max: 100 }).withMessage('Full name cannot exceed 100 characters'),
+    body('bio')
+        .optional()
+        .trim()
+        .isLength({ max: 500 }).withMessage('Bio cannot exceed 500 characters'),
     body('avatar')
         .optional()
         .isURL().withMessage('Avatar must be a valid URL'),

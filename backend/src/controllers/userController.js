@@ -74,6 +74,7 @@ const updateProfile = async (req, res, next) => {
         const {
             fullName,
             avatar,
+            bio,
             // instructor profile
             instructorHeadline,
             instructorBio,
@@ -88,6 +89,7 @@ const updateProfile = async (req, res, next) => {
         const updates = {};
         if (fullName !== undefined) updates.fullName = fullName;
         if (avatar !== undefined) updates.avatar = avatar;
+        if (bio !== undefined) updates.bio = bio;
         if (instructorHeadline !== undefined) updates.instructorHeadline = instructorHeadline;
         if (instructorBio !== undefined) updates.instructorBio = instructorBio;
         if (instructorSkills !== undefined) updates.instructorSkills = instructorSkills;

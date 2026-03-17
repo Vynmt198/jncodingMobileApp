@@ -127,6 +127,20 @@ export const API_ENDPOINTS = {
     THUMBNAIL: '/upload/thumbnail',
   },
 
+  // Admin
+  ADMIN: {
+    STATS: '/admin/stats',
+    USERS: '/admin/users',
+    USER_ROLE: (id: string) => `/admin/users/${id}/role`,
+    USER_STATUS: (id: string) => `/admin/users/${id}/status`,
+    COURSES: '/admin/courses',
+    COURSE_APPROVE: (id: string) => `/admin/courses/${id}/approve`,
+    COURSE_STATUS: (id: string) => `/admin/courses/${id}/status`,
+    CONTENT_LESSONS: '/admin/content/lessons',
+    LESSON_VISIBILITY: (lessonId: string) => `/admin/content/lessons/${lessonId}/visibility`,
+    CONTENT_REVIEWS: '/admin/content/reviews',
+  },
+
   // Health
   HEALTH: '/health',
 } as const;
