@@ -139,7 +139,7 @@ export const RegisterScreen = () => {
         password,
       };
       await register(payload).unwrap();
-      navigation.replace(ROUTES.REGISTER_SUCCESS);
+      navigation.replace(ROUTES.REGISTER_SUCCESS, { email: payload.email });
     } catch (err: unknown) {
       const msg = getErrorMessage(err);
       setError(msg);

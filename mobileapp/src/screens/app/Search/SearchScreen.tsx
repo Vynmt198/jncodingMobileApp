@@ -17,8 +17,9 @@ import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 
-const API_URL = 'http://localhost:3000/api';
 const SEARCH_HISTORY_KEY = '@search_history';
 
 export const SearchScreen = () => {
@@ -95,10 +96,10 @@ export const SearchScreen = () => {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/courses/autocomplete?q=${text}`);
-      const data = await res.json();
+      const res = await axiosInstance.get(API_ENDPOINTS.COURSES.AUTOCOMPLETE, { params: { q: text } });
+      const data = res.data as { success?: boolean; data?: unknown[] };
       if (data.success) {
-        setSuggestions(data.data);
+        setSuggestions(data.data ?? []);
       }
     } catch (e) {
       console.error(e);
@@ -124,12 +125,12 @@ export const SearchScreen = () => {
       if (filterStr === 'Free') priceType = 'free';
       if (filterStr === 'Premium') priceType = 'paid';
 
-      const baseUrl = `${API_URL}/courses/search`;
-      const queryParams = `q=${term}&level=${level}&priceType=${priceType}`;
-      const res = await fetch(`${baseUrl}?${queryParams}`);
-      const data = await res.json();
+      const res = await axiosInstance.get(API_ENDPOINTS.COURSES.SEARCH, {
+        params: { q: term, level, priceType },
+      });
+      const data = res.data as { success?: boolean; data?: { courses?: unknown[] } };
       if (data.success) {
-        setResults(data.data.courses);
+        setResults(data.data?.courses ?? []);
       }
     } catch (e) {
       console.error(e);
