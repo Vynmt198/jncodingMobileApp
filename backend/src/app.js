@@ -163,8 +163,9 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`[Server] OPLW API running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+const HOST = process.env.HOST || '0.0.0.0'; // 0.0.0.0 để emulator (10.0.2.2) kết nối được
+app.listen(PORT, HOST, () => {
+    console.log(`[Server] OPLW API running on http://${HOST}:${PORT} (${process.env.NODE_ENV} mode)`);
 });
 
 module.exports = app;

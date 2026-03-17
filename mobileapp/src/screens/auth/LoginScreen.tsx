@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
@@ -8,7 +8,7 @@ import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Button, Input, FadeInView } from '@/components/ui';
 import { useLoginMutation } from '@/store/api/authApi';
 import { setCredentials } from '@/store/slices/authSlice';
-import { TOKEN_KEY } from '@/api/axiosInstance';
+import { API_BASE_URL, TOKEN_KEY } from '@/api/axiosInstance';
 import { setSecureItem } from '@/utils/secureStorage';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
@@ -16,6 +16,49 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const REMEMBER_EMAIL_KEY = '@remember_email';
 const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
+
+/** Map thông báo lỗi đăng nhập tiếng Anh từ backend sang tiếng Việt thân thiện hơn */
+const mapLoginErrorToVietnamese = (message: string): string => {
+  const map: Record<string, string> = {
+    'Invalid email or password': 'Email hoặc mật khẩu không đúng',
+    'Invalid credentials': 'Email hoặc mật khẩu không đúng',
+    'User not found': 'Tài khoản không tồn tại',
+    'Account is inactive': 'Tài khoản của bạn chưa được kích hoạt hoặc đã bị khóa',
+    'Please provide a valid email address': 'Email không hợp lệ',
+  };
+  return map[message] ?? message;
+};
+
+/** Chuẩn hóa error object từ RTK Query / axios cho màn Login */
+const getLoginErrorMessage = (err: unknown): string => {
+  const e = err as Record<string, unknown>;
+  const data =
+    (e?.data as Record<string, unknown> | undefined) ??
+    (e?.error as Record<string, unknown>)?.data ??
+    (e?.payload as Record<string, unknown>)?.data;
+  const status = (e?.status as number | undefined) ?? (e?.error as Record<string, unknown>)?.status;
+
+  // Không có status + data là "Network Error" → lỗi kết nối thực sự (timeout, DNS...)
+  if (status === undefined && (data === undefined || data === null || data === 'Network Error')) {
+    return `Không thể kết nối máy chủ (base URL: ${API_BASE_URL}). Nếu chạy Android emulator, dùng http://10.0.2.2:<PORT>/api; nếu chạy máy thật, dùng IP LAN của máy tính. Kiểm tra EXPO_PUBLIC_API_BASE_URL trong file .env của mobileapp.`;
+  }
+
+  if (data && typeof data === 'object') {
+    const body = data as { message?: string; errors?: Array<{ message?: string }> };
+    const msg = body.message;
+    const errors = body.errors;
+    if (Array.isArray(errors) && errors.length > 0 && errors[0]?.message) {
+      return mapLoginErrorToVietnamese(errors[0].message);
+    }
+    if (msg) return mapLoginErrorToVietnamese(msg);
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  return 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin hoặc thử lại sau.';
+};
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -65,7 +108,7 @@ export const LoginScreen = () => {
         await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
     } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Đăng nhập thất bại. Vui lòng thử lại.';
+      const msg = getLoginErrorMessage(err);
       setError(msg);
       Alert.alert('Đăng nhập thất bại', msg);
     }
@@ -77,8 +120,18 @@ export const LoginScreen = () => {
     Alert.alert('Thông báo', msg);
   };
 
+  const Container = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
+
   return (
-    <View style={styles.container}>
+    <Container
+      style={styles.container}
+      {...(Platform.OS === 'ios'
+        ? {
+            behavior: 'padding' as const,
+            keyboardVerticalOffset: 60,
+          }
+        : {})}
+    >
       <FadeInView style={styles.fadeWrap} duration={500} slide>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -157,7 +210,7 @@ export const LoginScreen = () => {
           </View>
         </ScrollView>
       </FadeInView>
-    </View>
+    </Container>
   );
 };
 
