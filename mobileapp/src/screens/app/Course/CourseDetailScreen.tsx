@@ -59,6 +59,7 @@ export const CourseDetailScreen = () => {
   // Lấy user hiện tại để quyết định quyền review
   const auth = useSelector((state: RootState) => state.auth);
   const currentUserId = (auth as any)?.user?._id;
+  const currentRole = (auth as any)?.user?.role as string | undefined;
 
   const [myReview, setMyReview] = useState<any | null>(null);
   const [rating, setRating] = useState<number>(0);
@@ -68,6 +69,7 @@ export const CourseDetailScreen = () => {
   const isEnrolled = !!course?.isEnrolled;
   const price = Number(course?.price) ?? 0;
   const loading = loadingCourse || !course;
+  const hidePurchaseFooter = currentRole === 'instructor' || currentRole === 'admin';
 
   const canReview = !!currentUserId && isEnrolled;
 
@@ -599,32 +601,34 @@ export const CourseDetailScreen = () => {
       </ScrollView>
 
       {/* Sticky Footer */}
-      <View style={styles.footer}>
-         <View>
+      {!hidePurchaseFooter ? (
+        <View style={styles.footer}>
+          <View>
             <Text style={styles.footerPriceLabel}>Tổng giá</Text>
             <Text style={styles.footerPrice}>{price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')} ₫`}</Text>
-         </View>
-         <TouchableOpacity
-           style={styles.enrollBtn}
-           onPress={handleEnrollPress}
-           disabled={enrolling}
-           activeOpacity={0.85}
-           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-         >
+          </View>
+          <TouchableOpacity
+            style={styles.enrollBtn}
+            onPress={handleEnrollPress}
+            disabled={enrolling}
+            activeOpacity={0.85}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <LinearGradient
               colors={[COLORS.secondary, COLORS.secondaryDark]}
               style={[styles.enrollGradient, { pointerEvents: 'none' }]}
             >
-               {enrolling ? (
-                 <ActivityIndicator size="small" color={COLORS.primaryDark} />
-               ) : (
-                 <Text style={[styles.enrollText, { pointerEvents: 'none' }]}>
-                   {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
-                 </Text>
-               )}
+              {enrolling ? (
+                <ActivityIndicator size="small" color={COLORS.primaryDark} />
+              ) : (
+                <Text style={[styles.enrollText, { pointerEvents: 'none' }]}>
+                  {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
+                </Text>
+              )}
             </LinearGradient>
-         </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 };

@@ -23,6 +23,18 @@ interface InstructorAnalyticsResponse {
   topCourses: InstructorAnalyticsTopCourse[];
 }
 
+interface CourseAnalyticsResponse {
+  totalEnrollments: number;
+  totalTimeSpentSeconds: number;
+  totalCompletedLessons: number;
+  totalLessons: number;
+  expectedTimeSeconds: number;
+  completionRatePercent: number;
+  timeSpentRatePercent: number;
+  courseId: string;
+  courseTitle: string;
+}
+
 interface InstructorDiscussionSummaryItem {
   id: string;
   courseTitle: string;
@@ -68,12 +80,13 @@ export const instructorApi = createApi({
       transformResponse: (response: { success: boolean; data: InstructorDashboardStats }) =>
         response.data,
     }),
-    getAnalytics: builder.query<InstructorAnalyticsResponse, void>({
-      query: () => ({
-        url: API_ENDPOINTS.INSTRUCTOR.ANALYTICS,
+    // Per-course analytics (backend supported)
+    getCourseAnalytics: builder.query<CourseAnalyticsResponse, string>({
+      query: (courseId) => ({
+        url: API_ENDPOINTS.INSTRUCTOR.COURSE_ANALYTICS(courseId),
         method: 'GET',
       }),
-      transformResponse: (response: { success: boolean; data: InstructorAnalyticsResponse }) =>
+      transformResponse: (response: { success: boolean; data: CourseAnalyticsResponse }) =>
         response.data,
     }),
     getDiscussionSummary: builder.query<InstructorDiscussionSummaryResponse, void>({
@@ -137,7 +150,7 @@ export const instructorApi = createApi({
 
 export const {
   useGetDashboardStatsQuery,
-  useGetAnalyticsQuery,
+  useGetCourseAnalyticsQuery,
   useGetDiscussionSummaryQuery,
   useGetMyCoursesQuery,
   useUpdateCourseMutation,

@@ -81,7 +81,7 @@ const InstructorCourseRow: React.FC<CourseRowProps> = ({
   const statusLabel = STATUS_LABELS[String(status)] ?? status;
   const enrollments = item.enrollmentCount ?? 0;
 
-  const canSubmit = status === 'draft' || status === 'rejected';
+  const canSubmit = status === 'draft';
   const canEdit = status !== 'rejected';
   const canDeleteByStatus = status === 'draft' || status === 'pending' || status === 'rejected';
   const canDelete = canDeleteByStatus || (status === 'disabled' && role === 'admin');
@@ -104,23 +104,17 @@ const InstructorCourseRow: React.FC<CourseRowProps> = ({
         </View>
       </Pressable>
       <View style={styles.courseActions}>
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            canSubmit && styles.actionButtonSubmit,
-            !canSubmit && { opacity: 0.35 },
-          ]}
-          activeOpacity={canSubmit ? 0.8 : 1}
-          onPress={canSubmit && onPressSubmit ? onPressSubmit : undefined}
-          accessibilityLabel="Gửi duyệt"
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="send"
-            size={18}
-            color={canSubmit ? COLORS.primary : COLORS.textSecondary}
-          />
-        </TouchableOpacity>
+        {canSubmit ? (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonSubmit]}
+            activeOpacity={0.8}
+            onPress={onPressSubmit}
+            accessibilityLabel="Gửi duyệt"
+            accessibilityRole="button"
+          >
+            <Ionicons name="send" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           style={[styles.actionButton, !canEdit && { opacity: 0.35 }]}
           activeOpacity={canEdit ? 0.8 : 1}
@@ -128,13 +122,15 @@ const InstructorCourseRow: React.FC<CourseRowProps> = ({
         >
           <Ionicons name="create-outline" size={18} color={COLORS.primary} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, !canDelete && { opacity: 0.35 }]}
-          activeOpacity={canDelete ? 0.8 : 1}
-          onPress={canDelete ? onPressDelete : undefined}
-        >
-          <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-        </TouchableOpacity>
+        {canDelete ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            activeOpacity={0.8}
+            onPress={onPressDelete}
+          >
+            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -160,14 +156,21 @@ export const InstructorMyCoursesScreen: React.FC = () => {
 
   const [courses, setCourses] = React.useState<InstructorCourseItem[]>([]);
   const pagination = data?.pagination;
+  const pageCourses = (data?.courses ?? []) as InstructorCourseItem[];
+  // Tránh vòng lặp render trên web khi data.courses có thể đổi reference liên tục
+  // nhưng nội dung không đổi (gây useEffect chạy lại và setState mãi).
+  const pageCoursesKey = pageCourses.map(c => c._id).join('|');
 
   React.useEffect(() => {
-    if (!data?.courses) return;
+    if (!pageCourses.length) {
+      if (page === 1) setCourses([]);
+      return;
+    }
     setCourses(prev => {
       const next = page === 1 ? [] : prev;
       const seen = new Set(next.map(c => c._id));
       const merged = [...next];
-      for (const c of data.courses as InstructorCourseItem[]) {
+      for (const c of pageCourses) {
         if (!seen.has(c._id)) {
           seen.add(c._id);
           merged.push(c);
@@ -175,7 +178,7 @@ export const InstructorMyCoursesScreen: React.FC = () => {
       }
       return merged;
     });
-  }, [data?.courses, page]);
+  }, [pageCoursesKey, page]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredCourses =
@@ -320,9 +323,8 @@ export const InstructorMyCoursesScreen: React.FC = () => {
                     onPress: async () => {
                       try {
                         await deleteCourse(item._id).unwrap();
-                        setPage(1);
-                        setCourses([]);
-                        await refetch();
+                        // Không reset trang/filter; chỉ remove item khỏi list hiện tại
+                        setCourses(prev => prev.filter(c => c._id !== item._id));
                       } catch (e: any) {
                         Alert.alert(
                           'Lỗi',
@@ -341,9 +343,10 @@ export const InstructorMyCoursesScreen: React.FC = () => {
                   courseId: item._id,
                   payload: { submitForReview: true },
                 }).unwrap();
-                setPage(1);
-                setCourses([]);
-                refetch();
+                // Không reset trang/filter; cập nhật trạng thái item tại chỗ
+                setCourses(prev =>
+                  prev.map(c => (c._id === item._id ? { ...c, status: 'pending' } : c)),
+                );
                 Alert.alert('Thành công', 'Đã gửi khóa học chờ admin duyệt. Trạng thái: Chờ duyệt.');
               } catch (e: any) {
                 const msg =

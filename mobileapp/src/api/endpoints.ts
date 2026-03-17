@@ -117,6 +117,7 @@ export const API_ENDPOINTS = {
   INSTRUCTOR: {
     DASHBOARD: '/instructor/dashboard',
     ANALYTICS: '/instructor/analytics',
+    COURSE_ANALYTICS: (courseId: string) => `/instructor/courses/${courseId}/analytics`,
     DISCUSSION_SUMMARY: '/instructor/discussions/summary',
     MY_COURSES: '/instructor/courses',
     CREATE_COURSE: '/instructor/courses',
