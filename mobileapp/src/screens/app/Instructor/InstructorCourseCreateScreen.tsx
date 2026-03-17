@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Input, Button, Select } from '@/components/ui';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 import {
   useCreateCourseMutation,
   useCreateLessonMutation,
@@ -31,8 +33,6 @@ type Category = {
   _id: string;
   name: string;
 };
-
-const API_URL = 'http://localhost:3000/api';
 
 export const InstructorCourseCreateScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -94,18 +94,29 @@ export const InstructorCourseCreateScreen: React.FC = () => {
     }
   }, [editingCourseId]);
 
+  const curriculumFromApi = (createdCurriculum as any[]) ?? [];
+  const curriculumKey = curriculumFromApi
+    .map(l => String((l as any)?._id ?? (l as any)?.id ?? ''))
+    .join('|');
+
   useEffect(() => {
-    setCurriculum(createdCurriculum as any[]);
-  }, [createdCurriculum]);
+    setCurriculum(prev => {
+      const prevKey = (prev ?? [])
+        .map(l => String((l as any)?._id ?? (l as any)?.id ?? ''))
+        .join('|');
+      if (prevKey === curriculumKey) return prev;
+      return curriculumFromApi;
+    });
+  }, [curriculumKey]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true);
-        const res = await fetch(`${API_URL}/categories`);
-        const json = await res.json();
-        if (json?.success && Array.isArray(json.data)) {
-          setCategories(json.data);
+        const res = await axiosInstance.get(API_ENDPOINTS.CATEGORIES.LIST);
+        const data = (res as any)?.data;
+        if (data?.success && Array.isArray(data.data)) {
+          setCategories(data.data);
         } else {
           setCategories([]);
         }
@@ -311,21 +322,18 @@ export const InstructorCourseCreateScreen: React.FC = () => {
 
       setUploadingThumbnail(true);
       const formData = new FormData();
-      formData.append('file', {
+      // Backend expects field name "thumbnail"
+      formData.append('thumbnail', {
         // @ts-ignore - React Native file type
         uri: result.assets[0].uri,
         name: 'thumbnail.jpg',
         type: 'image/jpeg',
       });
 
-      const response = await fetch(`${API_URL}/upload/thumbnail`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          // Let the browser/native set correct multipart boundary
-        } as any,
+      const response = await axiosInstance.post(API_ENDPOINTS.UPLOAD.THUMBNAIL, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const json = await response.json();
+      const json = (response as any)?.data;
       const url = json?.data?.url || json?.url;
       if (!url) {
         throw new Error('Không lấy được URL ảnh từ server');

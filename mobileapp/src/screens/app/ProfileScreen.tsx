@@ -36,7 +36,7 @@ export const ProfileScreen = () => {
   const currentUser = useAppSelector(s => s.auth.user);
   const isAdmin = currentUser?.role === 'admin';
   const { data: certificates, isLoading: loadingCertificates } = useGetMyCertificatesQuery(undefined, {
-    skip: !token || isAdmin,
+    skip: true,
   });
   const {
     data: user,
@@ -265,46 +265,7 @@ export const ProfileScreen = () => {
           containerStyle={styles.input}
         />
 
-        {!isAdmin && (
-          <TouchableOpacity
-            style={[styles.menuRow, styles.paymentHistoryRow]}
-            onPress={() => (navigation as any).navigate(ROUTES.PAYMENT_HISTORY as never)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.paymentHistoryRowText}> Lịch sử thanh toán</Text>
-            <Text style={styles.paymentHistoryRowArrow}>›</Text>
-          </TouchableOpacity>
-        )}
-
-        
-
-        {!isAdmin && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Chứng chỉ của bạn</Text>
-            </View>
-            {loadingCertificates ? (
-              <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: SPACING[4] }} />
-            ) : !certificates || certificates.length === 0 ? (
-              <Text style={styles.emptyCertificatesText}>Bạn chưa có chứng chỉ nào.</Text>
-            ) : (
-              certificates.map(cert => {
-                const course: any = (cert as any).courseId ?? null;
-                const courseTitle = course?.title ?? 'Khóa học';
-                const issuedAt = (cert as any).issuedAt;
-                return (
-                  <View key={(cert as any)._id} style={styles.certificateCard}>
-                    <Text style={styles.certificateCourseTitle}>{courseTitle}</Text>
-                    <Text style={styles.certificateDate}>
-                      Cấp ngày:{' '}
-                      {issuedAt ? new Date(issuedAt).toLocaleDateString('vi-VN') : '—'}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
-          </>
-        )}
+        {/* Đã ẩn: Lịch sử thanh toán + Chứng chỉ */}
 
         {saveSuccessMessage ? (
           <View style={styles.saveSuccessBanner}>

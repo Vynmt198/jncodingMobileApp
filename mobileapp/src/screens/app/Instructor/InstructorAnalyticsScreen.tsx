@@ -1,63 +1,111 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, useWindowDimensions } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import type { AppScreenProps } from '@/types/navigation.types';
 import { ROUTES } from '@/constants/routes';
 import { Card } from '@/components/ui';
-import { useGetAnalyticsQuery } from '@/store/api/instructorApi';
+import { Select } from '@/components/ui/Select';
+import { useGetCourseAnalyticsQuery, useGetMyCoursesQuery } from '@/store/api/instructorApi';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ScreenProps = AppScreenProps<typeof ROUTES.INSTRUCTOR_ANALYTICS>;
 
 export const InstructorAnalyticsScreen: React.FC<ScreenProps> = () => {
-  const { data, isLoading, isError } = useGetAnalyticsQuery();
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const isSmall = width < 380 || height < 700;
+  const padX = isSmall ? SPACING[4] : SPACING[6];
+  const padTop = Math.max(insets.top, isSmall ? 10 : 14);
+
+  const { data: myCoursesData, isLoading: loadingCourses } = useGetMyCoursesQuery({ page: 1, limit: 50 });
+  const courses = myCoursesData?.courses ?? [];
+  const [courseId, setCourseId] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (courseId) return;
+    if (courses[0]?._id) setCourseId(courses[0]._id);
+  }, [courses, courseId]);
+
+  const { data, isLoading, isError } = useGetCourseAnalyticsQuery(courseId, { skip: !courseId } as any);
+
+  const formatSeconds = (seconds: number) => {
+    const s = Math.max(0, Math.floor(seconds || 0));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (h > 0) return `${h} giờ ${m} phút`;
+    return `${m} phút`;
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Course Analytics</Text>
-      <Text style={styles.subtitle}>
-        Tỉ lệ hoàn thành, rating và top khoá học của bạn.
-      </Text>
+    <View style={[styles.container, { paddingHorizontal: padX, paddingTop: padTop }]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={[styles.title, isSmall && styles.titleSmall]}>Course Analytics</Text>
+        <Text style={[styles.subtitle, isSmall && styles.subtitleSmall]}>
+          Chọn 1 khoá học để xem thống kê.
+        </Text>
 
-      {isLoading && (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
-        </View>
-      )}
+        <Text style={styles.label}>Khoá học</Text>
+        {loadingCourses ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Đang tải danh sách khoá...</Text>
+          </View>
+        ) : (
+          <Select
+            value={courseId}
+            onChange={val => setCourseId(String(val))}
+            placeholder="Chọn khoá học"
+            options={courses.map(c => ({ label: c.title, value: c._id }))}
+          />
+        )}
 
-      {isError && !isLoading && (
-        <Text style={styles.errorText}>Không thể tải dữ liệu phân tích.</Text>
-      )}
+        {isLoading && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+          </View>
+        )}
 
-      {data && (
-        <>
-          <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Tỉ lệ hoàn thành chung</Text>
-            <Text style={styles.metricValue}>{Math.round(data.completionRate)}%</Text>
-            <Text style={styles.metricHint}>So với lần đo gần nhất</Text>
-          </Card>
+        {isError && !isLoading && (
+          <Text style={styles.errorText}>Không thể tải dữ liệu phân tích.</Text>
+        )}
 
-          <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Đánh giá trung bình</Text>
-            <Text style={styles.metricValue}>
-              {data.averageRating.toFixed(1)} / 5.0
-            </Text>
-            <Text style={styles.metricHint}>
-              Dựa trên {data.totalReviews.toLocaleString('vi-VN')} lượt đánh giá
-            </Text>
-          </Card>
+        {data && (
+          <>
+            <Card style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>{data.courseTitle}</Text>
+              <Text style={styles.metricHint}>Mã khoá: {data.courseId}</Text>
+            </Card>
 
-          <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Top khoá học</Text>
-            {data.topCourses.map((course, index) => (
-              <Text key={course.courseId} style={styles.itemText}>
-                {index + 1}. {course.title} — {course.averageRating.toFixed(1)} ★ —{' '}
-                {course.enrollments.toLocaleString('vi-VN')} học viên
+            <Card style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Học viên đang active</Text>
+              <Text style={styles.metricValue}>{data.totalEnrollments.toLocaleString('vi-VN')}</Text>
+              <Text style={styles.metricHint}>
+                Bài học: {data.totalLessons.toLocaleString('vi-VN')} • Hoàn thành: {data.totalCompletedLessons.toLocaleString('vi-VN')}
               </Text>
-            ))}
-          </Card>
-        </>
-      )}
+            </Card>
+
+            <Card style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Tỉ lệ hoàn thành</Text>
+              <Text style={styles.metricValue}>{Math.round(data.completionRatePercent)}%</Text>
+              <Text style={styles.metricHint}>Dựa trên tổng số bài hoàn thành / tổng kỳ vọng</Text>
+              <Text style={[styles.itemText, { marginTop: SPACING[2] }]}>
+                Tỉ lệ thời gian học: {Math.round(data.timeSpentRatePercent)}%
+              </Text>
+              <Text style={styles.itemText}>
+                Tổng thời gian học: {formatSeconds(data.totalTimeSpentSeconds)}
+              </Text>
+              <Text style={styles.itemText}>
+                Thời gian kỳ vọng: {formatSeconds(data.expectedTimeSeconds)}
+              </Text>
+            </Card>
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 };
@@ -66,8 +114,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING[6],
-    paddingTop: SPACING[8],
+  },
+  content: {
+    paddingBottom: SPACING[8],
   },
   title: {
     ...TYPOGRAPHY.h3,
@@ -75,10 +124,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: SPACING[2],
   },
+  titleSmall: {
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: SPACING[1],
+  },
   subtitle: {
     ...TYPOGRAPHY.bodySmall,
     color: COLORS.textSecondary,
     marginBottom: SPACING[5],
+  },
+  subtitleSmall: {
+    marginBottom: SPACING[4],
+  },
+  label: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING[2],
   },
   sectionCard: {
     marginBottom: SPACING[4],
