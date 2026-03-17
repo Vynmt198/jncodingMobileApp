@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { getSecureItem, removeSecureItem } from '@/utils/secureStorage';
 
-// Web dùng API_BASE_URL (localhost). Android emulator ưu tiên 10.0.2.2.
+// Web dùng API_BASE_URL (localhost). Android emulator dùng 10.0.2.2 để trỏ về host.
 const isAndroidEmulator = Platform.OS === 'android' && !Constants.isDevice;
 export const API_BASE_URL = (() => {
   if (Platform.OS === 'web') {
@@ -12,6 +12,8 @@ export const API_BASE_URL = (() => {
   }
 
   if (isAndroidEmulator) {
+    // Emulator Android chạy trên máy host: 10.0.2.2 là cách chuẩn để truy cập localhost của host.
+    // Nếu bạn muốn override (ví dụ dùng máy thật), hãy dùng EXPO_PUBLIC_API_BASE_URL_DEVICE thay vì biến này.
     return process.env.EXPO_PUBLIC_API_BASE_URL_ANDROID_EMULATOR ?? 'http://10.0.2.2:3000/api';
   }
 
@@ -23,6 +25,13 @@ export const API_BASE_URL = (() => {
     'http://localhost:3000/api'
   );
 })();
+
+if (__DEV__) {
+  // Giúp debug lỗi "Network request failed" trên emulator/device
+  // (thường do baseURL trỏ sai host hoặc bị chặn mạng)
+  // eslint-disable-next-line no-console
+  console.log('[API] baseURL =', API_BASE_URL);
+}
 
 /** Store ref để interceptor dispatch logout khi 401 (tránh circular dependency). Gọi setStoreForAxios(store) trong store/index.ts. */
 let storeRef: Store | null = null;
@@ -61,6 +70,25 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   response => response,
   async (error: AxiosError) => {
+    if (__DEV__) {
+      const status = error.response?.status;
+      const url = String(error.config?.url ?? '');
+
+      // 404 "my review" là trạng thái bình thường khi user chưa review khóa học → tránh log nhiễu
+      const isExpectedNotFound = status === 404 && url.startsWith('/reviews/my-review/');
+
+      if (!isExpectedNotFound) {
+      // eslint-disable-next-line no-console
+      console.warn('[API] request failed', {
+        baseURL: error.config?.baseURL,
+        url,
+        method: error.config?.method,
+        status,
+        message: error.message,
+      });
+      }
+    }
+
     if (error.response?.status === 401) {
       await removeSecureItem(TOKEN_KEY);
       const { logout } = await import('@/store/slices/authSlice');

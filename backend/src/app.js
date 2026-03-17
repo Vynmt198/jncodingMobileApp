@@ -69,6 +69,11 @@ app.use(passport.initialize());
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
+// Log mọi request tới /api để dễ kiểm tra emulator/device có gọi đúng backend
+app.use('/api', (req, res, next) => {
+    console.log(`[API] ${req.method} ${req.originalUrl}`);
+    next();
+});
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

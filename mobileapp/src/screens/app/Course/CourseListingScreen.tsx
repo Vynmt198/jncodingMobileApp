@@ -17,8 +17,9 @@ import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 
-const API_URL = 'http://localhost:3000/api';
 const { width } = Dimensions.get('window');
 
 const LEVELS = [
@@ -60,10 +61,19 @@ export const CourseListingScreen = () => {
       if (pageNum === 1) setLoading(true);
       else setLoadingMore(true);
 
-      const baseUrl = `${API_URL}/courses/search`;
-      const query = `page=${pageNum}&limit=10&sortBy=${sortBy}&level=${selectedLevel}&category=${categoryId}`;
-      const response = await fetch(`${baseUrl}?${query}`);
-      const result = await response.json();
+      const res = await axiosInstance.get(API_ENDPOINTS.COURSES.SEARCH, {
+        params: {
+          page: pageNum,
+          limit: 10,
+          sortBy,
+          level: selectedLevel,
+          category: categoryId,
+        },
+      });
+      const result = res.data as {
+        success?: boolean;
+        data?: { courses?: any[]; pagination?: { totalPages?: number } };
+      };
 
       if (result.success) {
         setCourses(prev => shouldReset ? result.data.courses : [...prev, ...result.data.courses]);

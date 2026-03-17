@@ -12,6 +12,7 @@ import type {
 export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: axiosBaseQuery(),
+  tagTypes: ['Profile'],
   endpoints: builder => ({
     login: builder.mutation<LoginResponse['data'], LoginRequest>({
       query: credentials => ({
@@ -20,6 +21,7 @@ export const authApi = createApi({
         data: credentials,
       }),
       transformResponse: (response: LoginResponse) => response.data,
+      invalidatesTags: ['Profile'],
     }),
     register: builder.mutation<RegisterResponse['data'], RegisterRequest>({
       query: body => ({
@@ -40,6 +42,7 @@ export const authApi = createApi({
         method: 'GET',
       }),
       transformResponse: (response: { success: boolean; data: { user: User } }) => response.data.user,
+      providesTags: ['Profile'],
     }),
     updateProfile: builder.mutation<User, Partial<Pick<User, 'fullName' | 'avatar' | 'bio' | 'instructorHeadline' | 'instructorBio' | 'instructorSkills' | 'instructorWebsite' | 'instructorFacebook' | 'instructorYoutube' | 'instructorLinkedin'>>>({
       query: body => ({
@@ -54,6 +57,7 @@ export const authApi = createApi({
         url: API_ENDPOINTS.AUTH.LOGOUT,
         method: 'POST',
       }),
+      invalidatesTags: ['Profile'],
     }),
     forgotPassword: builder.mutation<{ success: boolean; message?: string }, { email: string }>({
       query: body => ({

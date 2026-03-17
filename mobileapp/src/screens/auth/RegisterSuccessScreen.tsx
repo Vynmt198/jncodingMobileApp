@@ -1,16 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import LottieView from 'lottie-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
 import type { AuthStackParamList } from '@/types/navigation.types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.REGISTER_SUCCESS>;
+type RegisterSuccessRoute = RouteProp<AuthStackParamList, typeof ROUTES.REGISTER_SUCCESS>;
 
 export const RegisterSuccessScreen = () => {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RegisterSuccessRoute>();
+  const registeredEmail = route.params?.email;
 
   return (
     <View style={styles.container}>
@@ -20,7 +23,7 @@ export const RegisterSuccessScreen = () => {
         loop={false}
         style={styles.lottie}
         onAnimationFinish={() => {
-          navigation.replace(ROUTES.LOGIN);
+          navigation.replace(ROUTES.LOGIN, registeredEmail ? { registeredEmail } : undefined);
         }}
       />
       <Text style={styles.title}>Đăng ký thành công!</Text>
