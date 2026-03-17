@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const instructorController = require('../controllers/instructorController');
 const instructorQuizController = require('../controllers/instructorQuizController');
+const courseController = require('../controllers/courseController');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 
@@ -9,6 +10,7 @@ const roleCheck = require('../middleware/roleCheck');
 router.use(auth, roleCheck.requireRole('instructor', 'admin'));
 
 router.get('/courses', instructorController.listMyCourses);
+router.post('/courses', courseController.createCourse);
 // More specific paths first so :id does not consume "analytics" or "enrollments"
 router.get('/courses/:id/enrollments', instructorController.getCourseEnrollmentsWithProgress);
 router.get('/courses/:id/analytics', instructorController.getCourseAnalytics);

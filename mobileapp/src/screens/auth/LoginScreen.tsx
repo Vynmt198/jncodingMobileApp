@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
@@ -69,15 +69,22 @@ export const LoginScreen = () => {
   const [login, { isLoading }] = useLoginMutation();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.LOGIN>>();
   const dispatch = useDispatch();
+  const route = useRoute<RouteProp<AuthStackParamList, typeof ROUTES.LOGIN>>();
+  const registeredEmail = route.params?.registeredEmail;
 
   useEffect(() => {
+    // Ưu tiên email vừa đăng ký (sau khi đăng ký xong chuyển sang Login)
+    if (registeredEmail) {
+      setEmail(registeredEmail);
+      return;
+    }
     AsyncStorage.getItem(REMEMBER_EMAIL_KEY).then(v => {
       if (v) setEmail(v);
     });
     AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY).then(v => {
       setBiometricEnabled(v === 'true');
     });
-  }, []);
+  }, [registeredEmail]);
 
   const validate = () => {
     if (!email.trim()) {

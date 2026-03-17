@@ -11,6 +11,7 @@ const {
     validateResetToken,
 } = require('../utils/validators');
 const auth = require('../middleware/auth');
+const optionalAuth = require('../middleware/optionalAuth');
 
 // Rate limiting for auth endpoints 
 const authLimiter = rateLimit({
@@ -36,8 +37,8 @@ router.post('/login', authLimiter, validateLogin, login);
 
 // @route   POST /api/auth/logout
 // @desc    Logout (client-side token revocation)
-// @access  Private
-router.post('/logout', auth, logout);
+// @access  Public (idempotent; accepts token if provided)
+router.post('/logout', optionalAuth, logout);
 
 // @route   POST /api/auth/forgot-password
 // @desc    Send password reset email

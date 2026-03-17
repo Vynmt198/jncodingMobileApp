@@ -16,8 +16,8 @@ import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-
-const API_URL = 'http://localhost:3000/api';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 
 const H_PADDING = SPACING[5] * 2;
 const CARD_GAP = SPACING[4];
@@ -40,10 +40,10 @@ export const CategoryScreen = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/categories`);
-      const data = await res.json();
+      const res = await axiosInstance.get(API_ENDPOINTS.CATEGORIES.LIST);
+      const data = res.data as { success?: boolean; data?: unknown[] };
       if (data.success) {
-        setCategories(data.data);
+        setCategories(data.data ?? []);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);

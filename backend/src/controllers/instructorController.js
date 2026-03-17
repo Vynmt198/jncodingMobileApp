@@ -8,6 +8,8 @@ const mongoose = require('mongoose');
  * @route GET /api/instructor/courses
  * @desc List courses of the current instructor
  */
+const ALLOWED_COURSE_STATUSES = ['draft', 'pending', 'active', 'rejected', 'disabled'];
+
 exports.listMyCourses = async (req, res, next) => {
     try {
         const { page = 1, limit = 20, status } = req.query;
@@ -15,7 +17,15 @@ exports.listMyCourses = async (req, res, next) => {
         const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
         const skip = (pageNum - 1) * limitNum;
         const filter = { instructorId: req.user._id };
-        if (status) filter.status = status;
+        if (status) {
+            if (!ALLOWED_COURSE_STATUSES.includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `status must be one of: ${ALLOWED_COURSE_STATUSES.join(', ')}.`,
+                });
+            }
+            filter.status = status;
+        }
         const [courses, total] = await Promise.all([
             Course.find(filter)
                 .populate('categoryId', 'name slug')

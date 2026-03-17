@@ -17,8 +17,9 @@ import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 
-const API_URL = 'http://localhost:3000/api';
 const SEARCH_HISTORY_KEY = '@search_history';
 
 export const SearchScreen = () => {
@@ -96,14 +97,16 @@ export const SearchScreen = () => {
     if (newHistory.length === 0) setShowHistoryDropdown(false);
   };
 
-  const fetchAllCourses = async () => {
+ const fetchAllCourses = async () => {
     setLoading(true);
     setIsSearching(true);
     try {
-      const res = await fetch(`${API_URL}/courses/search?q=&level=&priceType=`);
-      const data = await res.json();
+      const res = await axiosInstance.get(API_ENDPOINTS.COURSES.SEARCH, {
+        params: { q: '', level: '', priceType: '' },
+      });
+      const data = res.data as { success?: boolean; data?: { courses?: any[] } };
       if (data.success) {
-        setResults(data.data.courses);
+        setResults(data.data?.courses ?? []);
       }
     } catch (e) {
       console.error(e);
@@ -111,7 +114,6 @@ export const SearchScreen = () => {
       setLoading(false);
     }
   };
-
   const handleSearch = async (term: string, filterStr = selectedFilter, isLive = false) => {
     if (!isLive) {
       Keyboard.dismiss();
@@ -130,12 +132,12 @@ export const SearchScreen = () => {
       if (filterStr === 'Miễn phí') priceType = 'free';
       if (filterStr === 'Cao cấp') priceType = 'paid';
 
-      const baseUrl = `${API_URL}/courses/search`;
-      const queryParams = `q=${term}&level=${level}&priceType=${priceType}`;
-      const res = await fetch(`${baseUrl}?${queryParams}`);
-      const data = await res.json();
+      const res = await axiosInstance.get(API_ENDPOINTS.COURSES.SEARCH, {
+        params: { q: term, level, priceType },
+      });
+      const data = res.data as { success?: boolean; data?: { courses?: unknown[] } };
       if (data.success) {
-        setResults(data.data.courses);
+        setResults(data.data?.courses ?? []);
       }
     } catch (e) {
       console.error(e);
