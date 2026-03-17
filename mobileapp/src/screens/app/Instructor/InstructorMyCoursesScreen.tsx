@@ -9,6 +9,9 @@ import {
   Image,
   Alert,
   TextInput,
+  ScrollView,
+  RefreshControl,
+  Pressable,
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { useDeleteCourseMutation, useGetMyCoursesQuery, useUpdateCourseMutation } from '@/store/api/instructorApi';
@@ -17,12 +20,15 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from '@/store/hooks';
-import { useGetCourseByIdQuery } from '@/store/api/coursesApi';
+import { API_BASE_URL } from '@/api/axiosInstance';
 
 type InstructorCourseItem = {
   _id: string;
   title: string;
   status?: string;
+  thumbnail?: string | null;
+  level?: string;
+  enrollmentCount?: number;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -33,8 +39,28 @@ const STATUS_LABELS: Record<string, string> = {
   disabled: 'Ẩn',
 };
 
+const PLACEHOLDER_THUMB = 'https://placehold.co/100x100?text=Course';
+
+function resolveThumbnailUri(input?: string | null) {
+  if (!input) return PLACEHOLDER_THUMB;
+  const raw = String(input).trim();
+  if (!raw) return PLACEHOLDER_THUMB;
+
+  // Allow http(s) + data URLs. Block unknown schemes on web (e.g. myapp://).
+  if (/^(https?:)?\/\//i.test(raw) || /^data:/i.test(raw)) return raw;
+
+  // Backend serves static files at /uploads (NOT under /api)
+  const origin = API_BASE_URL.replace(/\/api\/?$/i, '');
+  if (raw.startsWith('/uploads/')) return `${origin}${raw}`;
+  if (raw.startsWith('uploads/')) return `${origin}/${raw}`;
+
+  // Fallback: keep placeholder to avoid ERR_UNKNOWN_URL_SCHEME on web.
+  return PLACEHOLDER_THUMB;
+}
+
 interface CourseRowProps {
   item: InstructorCourseItem;
+  role?: string;
   onPressDetail: () => void;
   onPressEdit: () => void;
   onPressDelete: () => void;
@@ -43,82 +69,114 @@ interface CourseRowProps {
 
 const InstructorCourseRow: React.FC<CourseRowProps> = ({
   item,
+  role,
   onPressDetail,
   onPressEdit,
   onPressDelete,
   onPressSubmit,
 }) => {
-  const { data: courseDetail } = useGetCourseByIdQuery(item._id);
-
-  const thumb =
-    (courseDetail as any)?.thumbnail ||
-    (item as any).thumbnail ||
-    'https://placehold.co/100x100?text=Course';
-  const level = (courseDetail as any)?.level ?? (item as any).level ?? '—';
-  const status = (courseDetail as any)?.status ?? (item as any).status ?? '—';
+  const thumb = resolveThumbnailUri(item.thumbnail);
+  const level = item.level ?? '—';
+  const status = item.status ?? '—';
   const statusLabel = STATUS_LABELS[String(status)] ?? status;
-  const enrollments =
-    (courseDetail as any)?.enrollmentCount ?? (item as any).enrollmentCount ?? 0;
+  const enrollments = item.enrollmentCount ?? 0;
+
   const canSubmit = status === 'draft' || status === 'rejected';
+  const canEdit = status !== 'rejected';
+  const canDeleteByStatus = status === 'draft' || status === 'pending' || status === 'rejected';
+  const canDelete = canDeleteByStatus || (status === 'disabled' && role === 'admin');
 
   return (
-    <TouchableOpacity
-      style={styles.courseRow}
-      activeOpacity={0.85}
-      onPress={onPressDetail}
-    >
-      <Image source={{ uri: thumb }} style={styles.thumbnail} />
-      <View style={styles.courseInfo}>
-        <Text style={styles.courseTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={styles.courseMeta} numberOfLines={1}>
-          Trạng thái: <Text style={styles.courseMetaHighlight}>{statusLabel}</Text>
-        </Text>
-        <Text style={styles.courseMeta} numberOfLines={1}>
-          Cấp độ: <Text style={styles.courseMetaHighlight}>{level}</Text> • Học viên:{' '}
-          <Text style={styles.courseMetaHighlight}>{enrollments}</Text>
-        </Text>
-      </View>
+    <View style={styles.courseRow}>
+      <Pressable style={styles.coursePressArea} onPress={onPressDetail}>
+        <Image source={{ uri: thumb }} style={styles.thumbnail} />
+        <View style={styles.courseInfo}>
+          <Text style={styles.courseTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.courseMeta} numberOfLines={1}>
+            Trạng thái: <Text style={styles.courseMetaHighlight}>{statusLabel}</Text>
+          </Text>
+          <Text style={styles.courseMeta} numberOfLines={1}>
+            Cấp độ: <Text style={styles.courseMetaHighlight}>{level}</Text> • Học viên:{' '}
+            <Text style={styles.courseMetaHighlight}>{enrollments}</Text>
+          </Text>
+        </View>
+      </Pressable>
       <View style={styles.courseActions}>
         <TouchableOpacity
           style={[
             styles.actionButton,
+            canSubmit && styles.actionButtonSubmit,
             !canSubmit && { opacity: 0.35 },
           ]}
           activeOpacity={canSubmit ? 0.8 : 1}
           onPress={canSubmit && onPressSubmit ? onPressSubmit : undefined}
+          accessibilityLabel="Gửi duyệt"
+          accessibilityRole="button"
         >
-          <Ionicons name="paper-plane-outline" size={18} color={COLORS.secondary} />
+          <Ionicons
+            name="send"
+            size={18}
+            color={canSubmit ? COLORS.primary : COLORS.textSecondary}
+          />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionButton}
-          activeOpacity={0.8}
-          onPress={onPressEdit}
+          style={[styles.actionButton, !canEdit && { opacity: 0.35 }]}
+          activeOpacity={canEdit ? 0.8 : 1}
+          onPress={canEdit ? onPressEdit : undefined}
         >
           <Ionicons name="create-outline" size={18} color={COLORS.primary} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionButton}
-          activeOpacity={0.8}
-          onPress={onPressDelete}
+          style={[styles.actionButton, !canDelete && { opacity: 0.35 }]}
+          activeOpacity={canDelete ? 0.8 : 1}
+          onPress={canDelete ? onPressDelete : undefined}
         >
           <Ionicons name="trash-outline" size={18} color={COLORS.error} />
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
 export const InstructorMyCoursesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { data, isLoading, isError, refetch } = useGetMyCoursesQuery();
+  const user = useAppSelector(s => s.auth.user);
+
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [page, setPage] = React.useState(1);
+  const limit = 20;
+  const statusParam = statusFilter === 'all' ? undefined : statusFilter;
+
+  const { data, isLoading, isFetching, isError, refetch } = useGetMyCoursesQuery({
+    page,
+    limit,
+    status: statusParam,
+  });
   const [deleteCourse] = useDeleteCourseMutation();
   const [updateCourse] = useUpdateCourseMutation();
-  const user = useAppSelector(s => s.auth.user);
   const [searchQuery, setSearchQuery] = React.useState('');
 
-  const courses = data?.courses ?? [];
+  const [courses, setCourses] = React.useState<InstructorCourseItem[]>([]);
+  const pagination = data?.pagination;
+
+  React.useEffect(() => {
+    if (!data?.courses) return;
+    setCourses(prev => {
+      const next = page === 1 ? [] : prev;
+      const seen = new Set(next.map(c => c._id));
+      const merged = [...next];
+      for (const c of data.courses as InstructorCourseItem[]) {
+        if (!seen.has(c._id)) {
+          seen.add(c._id);
+          merged.push(c);
+        }
+      }
+      return merged;
+    });
+  }, [data?.courses, page]);
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredCourses =
     !normalizedQuery.length
@@ -134,6 +192,21 @@ export const InstructorMyCoursesScreen: React.FC = () => {
     (user?.fullName && user.fullName.trim().charAt(0)) ||
     (displayEmail && displayEmail.trim().charAt(0)) ||
     'U';
+
+  const isRefreshing = isFetching && page === 1;
+  const canLoadMore = !!pagination && pagination.page < pagination.totalPages;
+  const role = user?.role;
+
+  const handleChangeStatus = (nextStatus: string) => {
+    setStatusFilter(nextStatus);
+    setPage(1);
+  };
+
+  const handleLoadMore = () => {
+    if (isFetching || isLoading) return;
+    if (!canLoadMore) return;
+    setPage(p => p + 1);
+  };
 
   return (
     <View style={styles.container}>
@@ -182,6 +255,30 @@ export const InstructorMyCoursesScreen: React.FC = () => {
       <Text style={styles.sectionTitle}>Khóa tôi dạy</Text>
       <Text style={styles.subtitle}>Quản lý các khóa học bạn đang giảng dạy.</Text>
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterRow}
+      >
+        {(['all', 'draft', 'pending', 'active', 'rejected', 'disabled'] as const).map(s => {
+          const active = statusFilter === s;
+          const label = s === 'all' ? 'Tất cả' : (STATUS_LABELS[s] ?? s);
+          return (
+            <TouchableOpacity
+              key={s}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+              activeOpacity={0.85}
+              onPress={() => handleChangeStatus(s)}
+            >
+              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {isLoading && <Text style={styles.helperText}>Đang tải danh sách khóa học...</Text>}
       {isError && !isLoading && (
         <Text style={styles.errorText}>Không thể tải danh sách khóa học.</Text>
@@ -192,6 +289,18 @@ export const InstructorMyCoursesScreen: React.FC = () => {
           data={filteredCourses}
           keyExtractor={item => item._id}
           contentContainerStyle={styles.listContent}
+          onEndReachedThreshold={0.4}
+          onEndReached={handleLoadMore}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => {
+                setPage(1);
+                refetch();
+              }}
+              tintColor={COLORS.primary}
+            />
+          }
           renderItem={({ item }) => {
             const handleEditCourse = () => {
               navigation.navigate(ROUTES.INSTRUCTOR_CREATE_COURSE as never, {
@@ -211,6 +320,8 @@ export const InstructorMyCoursesScreen: React.FC = () => {
                     onPress: async () => {
                       try {
                         await deleteCourse(item._id).unwrap();
+                        setPage(1);
+                        setCourses([]);
                         await refetch();
                       } catch (e: any) {
                         Alert.alert(
@@ -224,29 +335,44 @@ export const InstructorMyCoursesScreen: React.FC = () => {
               );
             };
 
+            const submitForReview = async () => {
+              try {
+                await updateCourse({
+                  courseId: item._id,
+                  payload: { submitForReview: true },
+                }).unwrap();
+                setPage(1);
+                setCourses([]);
+                refetch();
+                Alert.alert('Thành công', 'Đã gửi khóa học chờ admin duyệt. Trạng thái: Chờ duyệt.');
+              } catch (e: any) {
+                const msg =
+                  e?.data?.message ??
+                  e?.error?.data?.message ??
+                  e?.message ??
+                  'Không thể gửi xét duyệt. Kiểm tra đăng nhập và quyền sở hữu khóa.';
+                Alert.alert('Lỗi', msg);
+              }
+            };
+
             const handleSubmitForReview = () => {
+              const isResubmit = item.status === 'rejected';
+              // react-native-web Alert không hỗ trợ buttons đầy đủ → nút "Gửi" có thể không chạy.
+              // Trên web, submit thẳng để đảm bảo request PUT được gửi lên backend.
+              if (Platform.OS === 'web') {
+                submitForReview();
+                return;
+              }
               Alert.alert(
                 'Gửi xét duyệt',
-                'Gửi bản nháp này cho admin duyệt? Sau khi duyệt, khóa học mới hiển thị cho học viên.',
+                isResubmit
+                  ? 'Gửi lại khóa học cho admin duyệt?'
+                  : 'Gửi bản nháp này cho admin duyệt? Sau khi duyệt, khóa học mới hiển thị cho học viên.',
                 [
                   { text: 'Hủy', style: 'cancel' },
                   {
                     text: 'Gửi',
-                    onPress: async () => {
-                      try {
-                        await updateCourse({
-                          courseId: item._id,
-                          payload: { submitForReview: true },
-                        }).unwrap();
-                        await refetch();
-                        Alert.alert('Thành công', 'Đã gửi khóa học chờ admin duyệt.');
-                      } catch (e: any) {
-                        Alert.alert(
-                          'Lỗi',
-                          e?.message || 'Không thể gửi xét duyệt. Vui lòng thử lại.',
-                        );
-                      }
-                    },
+                    onPress: submitForReview,
                   },
                 ],
               );
@@ -255,6 +381,7 @@ export const InstructorMyCoursesScreen: React.FC = () => {
             return (
               <InstructorCourseRow
                 item={item as InstructorCourseItem}
+                role={role}
                 onPressDetail={() =>
                   navigation.navigate(ROUTES.COURSE_DETAIL as never, { courseId: item._id })
                 }
@@ -264,6 +391,11 @@ export const InstructorMyCoursesScreen: React.FC = () => {
               />
             );
           }}
+          ListFooterComponent={
+            canLoadMore ? (
+              <Text style={styles.helperText}>Đang tải thêm...</Text>
+            ) : null
+          }
         />
       )}
     </View>
@@ -281,6 +413,35 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodySmall,
     color: COLORS.textSecondary,
     marginBottom: SPACING[5],
+  },
+  filterRow: {
+    alignItems: 'center',
+    paddingVertical: SPACING[2],
+    gap: 10,
+    paddingRight: SPACING[2],
+  },
+  filterScroll: {
+    flexGrow: 0,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterChipText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    fontWeight: '700',
+  },
+  filterChipTextActive: {
+    color: COLORS.textInverse,
   },
   headerCard: {
     borderBottomLeftRadius: 24,
@@ -416,6 +577,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  coursePressArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   courseInfo: {
     flex: 1,
     paddingRight: SPACING[3],
@@ -451,6 +617,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: COLORS.surfaceSecondary,
+  },
+  actionButtonSubmit: {
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
   },
 });
 

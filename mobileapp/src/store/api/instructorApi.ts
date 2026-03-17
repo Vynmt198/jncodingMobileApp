@@ -40,15 +40,25 @@ interface InstructorMyCourse {
   _id: string;
   title: string;
   status?: string;
+  thumbnail?: string | null;
+  level?: string;
+  enrollmentCount?: number;
 }
 
 interface InstructorMyCoursesResponse {
   courses: InstructorMyCourse[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export const instructorApi = createApi({
   reducerPath: 'instructorApi',
   baseQuery: axiosBaseQuery(),
+  tagTypes: ['InstructorCourses'],
   endpoints: builder => ({
     getDashboardStats: builder.query<InstructorDashboardStats, void>({
       query: () => ({
@@ -74,13 +84,20 @@ export const instructorApi = createApi({
       transformResponse: (response: { success: boolean; data: InstructorDiscussionSummaryResponse }) =>
         response.data,
     }),
-    getMyCourses: builder.query<InstructorMyCoursesResponse, void>({
-      query: () => ({
+    getMyCourses: builder.query<
+      InstructorMyCoursesResponse,
+      { page?: number; limit?: number; status?: string } | void
+    >({
+      query: (args) => ({
         url: API_ENDPOINTS.INSTRUCTOR.MY_COURSES,
         method: 'GET',
+        params: args || undefined,
       }),
-      transformResponse: (response: { success: boolean; data: InstructorMyCoursesResponse }) =>
-        response.data,
+      providesTags: () => ['InstructorCourses'],
+      transformResponse: (response: {
+        success: boolean;
+        data: { courses: InstructorMyCourse[]; pagination?: InstructorMyCoursesResponse['pagination'] };
+      }) => response.data,
     }),
     updateCourse: builder.mutation<
       any,
@@ -104,6 +121,7 @@ export const instructorApi = createApi({
         method: 'PUT',
         data: payload,
       }),
+      invalidatesTags: ['InstructorCourses'],
       transformResponse: (response: { success?: boolean; data?: any } | any) =>
         (response as any)?.data ?? response,
     }),
@@ -112,6 +130,7 @@ export const instructorApi = createApi({
         url: API_ENDPOINTS.COURSES.DETAIL(courseId),
         method: 'DELETE',
       }),
+      invalidatesTags: ['InstructorCourses'],
     }),
   }),
 });

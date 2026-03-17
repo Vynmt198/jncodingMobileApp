@@ -59,6 +59,21 @@ const TabNavigator = () => {
             component={AdminDashboardScreen}
             options={{ title: 'Thống kê' }}
           />
+          <Tab.Screen
+            name={ROUTES.INSTRUCTOR_DASHBOARD}
+            component={InstructorMyCoursesScreen}
+            options={{ title: 'Khóa tôi dạy' }}
+          />
+          <Tab.Screen
+            name={ROUTES.INSTRUCTOR_CREATE_COURSE}
+            component={InstructorCourseCreateScreen}
+            options={{ title: 'Tạo khóa mới' }}
+          />
+          <Tab.Screen
+            name={ROUTES.INSTRUCTOR_ANALYTICS}
+            component={InstructorAnalyticsScreen}
+            options={{ title: 'Thống kê khóa' }}
+          />
           <Tab.Screen name={ROUTES.PROFILE} component={ProfileScreen} />
         </>
       ) : role === 'instructor' ? (
