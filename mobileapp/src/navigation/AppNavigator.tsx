@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StackActions } from '@react-navigation/native';
 import { ROUTES } from '@/constants/routes';
 import { AppStackParamList, BottomTabParamList } from '@/types/navigation.types';
 import { COLORS } from '@/constants/theme';
@@ -71,7 +72,15 @@ const TabNavigator = () => {
           <Tab.Screen
             name={ROUTES.INSTRUCTOR_CREATE_COURSE}
             component={InstructorCourseCreateScreen}
-            options={{ title: 'Tạo khóa mới' }}
+            options={({ navigation }) => ({
+              title: 'Tạo khóa mới',
+              listeners: {
+                tabPress: () => {
+                  const stack = navigation.getParent()?.getParent();
+                  if (stack?.dispatch) stack.dispatch(StackActions.popToTop());
+                },
+              },
+            })}
           />
           <Tab.Screen
             name={ROUTES.INSTRUCTOR_ANALYTICS}
@@ -121,6 +130,7 @@ export const AppNavigator = () => {
       <Stack.Screen name={ROUTES.INSTRUCTOR_ANALYTICS} component={InstructorAnalyticsScreen} />
       <Stack.Screen name={ROUTES.INSTRUCTOR_DISCUSSIONS} component={InstructorDiscussionManagementScreen} />
       <Stack.Screen name={ROUTES.INSTRUCTOR_CREATE_COURSE} component={InstructorCourseCreateScreen} />
+      <Stack.Screen name={ROUTES.INSTRUCTOR_EDIT_COURSE} component={InstructorCourseCreateScreen} />
     </Stack.Navigator>
   );
 };

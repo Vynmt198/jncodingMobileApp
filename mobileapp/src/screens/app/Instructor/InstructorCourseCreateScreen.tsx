@@ -94,6 +94,34 @@ export const InstructorCourseCreateScreen: React.FC = () => {
     }
   }, [editingCourseId]);
 
+  // Khi vào màn "Tạo khóa mới" (không có courseId), reset hết state để không dính dữ liệu từ lần chỉnh sửa trước
+  useEffect(() => {
+    if (!editingCourseId) {
+      setCreatedCourseId(null);
+      setCurriculum([]);
+      setForm({
+        title: '',
+        description: '',
+        syllabus: '',
+        categoryId: '',
+        level: 'beginner',
+        price: '0',
+        thumbnail: '',
+        estimatedCompletionHours: '0',
+      });
+      setEditingLessonId(null);
+      setLessonForm({
+        title: '',
+        type: 'video',
+        videoUrl: '',
+        duration: '',
+        isPreview: false,
+        resources: '',
+        content: '',
+      });
+    }
+  }, [editingCourseId]);
+
   const curriculumFromApi = (createdCurriculum as any[]) ?? [];
   const curriculumKey = curriculumFromApi
     .map(l => String((l as any)?._id ?? (l as any)?.id ?? ''))
