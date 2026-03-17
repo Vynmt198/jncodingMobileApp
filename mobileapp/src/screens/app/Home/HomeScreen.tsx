@@ -79,12 +79,12 @@ export const HomeScreen = () => {
             </View>
             <View style={styles.userTextContainer}>
               <View style={styles.nameRow}>
-                <Text style={styles.greetingText}>Hello, {user?.fullName || 'Learner'}</Text>
+                <Text style={styles.greetingText}>Chào, {user?.fullName || 'Học viên'}</Text>
                 <View style={styles.vipBadge}>
                   <Text style={styles.vipText}>VIP</Text>
                 </View>
               </View>
-              <Text style={styles.sloganText}>Discover your next premium course</Text>
+              <Text style={styles.sloganText}>Khám phá khóa học cao cấp tiếp theo của bạn</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.notificationBtn}>
@@ -98,16 +98,16 @@ export const HomeScreen = () => {
           onPress={() => navigation.navigate(ROUTES.SEARCH as any)}
         >
           <Ionicons name="search-outline" size={20} color={COLORS.gray400} style={{ marginRight: SPACING[2] }} />
-          <Text style={styles.searchPlaceholder}>Search for luxury courses...</Text>
+          <Text style={styles.searchPlaceholder}>Tìm kiếm khóa học cao cấp...</Text>
         </TouchableOpacity>
       </LinearGradient>
 
       {/* Categories Horizontal Scroll */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Categories</Text>
+          <Text style={styles.sectionTitle}>Danh mục</Text>
           <TouchableOpacity onPress={() => navigation.navigate(ROUTES.CATEGORY)}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>Xem tất cả</Text>
           </TouchableOpacity>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
@@ -129,7 +129,7 @@ export const HomeScreen = () => {
       {/* Featured Courses Carousel */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Featured Experience</Text>
+          <Text style={styles.sectionTitle}>Trải nghiệm nổi bật</Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carouselScroll} pagingEnabled>
           {featuredCourses.map((course: any) => (
@@ -151,7 +151,7 @@ export const HomeScreen = () => {
                 <View style={styles.featuredRow}>
                   <Text style={styles.featuredInstructor}>{course.instructorId?.fullName}</Text>
                   <Text style={[styles.featuredPrice, { color: COLORS.primaryLight }]}>
-                    {course.price === 0 ? 'Free' : `$${course.price}`}
+                    {course.price === 0 ? 'Miễn phí' : `${course.price?.toLocaleString('vi-VN')} ₫`}
                   </Text>
                 </View>
               </LinearGradient>
@@ -210,9 +210,9 @@ export const HomeScreen = () => {
       {/* Trending Courses - Editorial List */}
       <View style={[styles.section, { marginBottom: SPACING[10] * 2 }]}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Trending Now</Text>
+          <Text style={styles.sectionTitle}>Xu hướng hiện nay</Text>
           <TouchableOpacity onPress={() => navigation.navigate(ROUTES.COURSE_LISTING as any)}>
-            <Text style={styles.seeAllText}>View Market</Text>
+            <Text style={styles.seeAllText}>Xem thị trường</Text>
           </TouchableOpacity>
         </View>
         {trendingCourses.map((course: any) => (
@@ -243,7 +243,7 @@ export const HomeScreen = () => {
                   <Text style={styles.ratingText}>{course.averageRating}</Text>
                 </View>
                 <Text style={styles.priceText}>
-                  {course.price === 0 ? 'Free' : `$${course.price}`}
+                  {course.price === 0 ? 'Miễn phí' : `${course.price?.toLocaleString('vi-VN')} ₫`}
                 </Text>
               </View>
             </View>

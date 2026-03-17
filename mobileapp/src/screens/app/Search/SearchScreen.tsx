@@ -25,46 +25,45 @@ export const SearchScreen = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [history, setHistory] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('All');
+  const [selectedFilter, setSelectedFilter] = useState('Tất cả');
   const [isFocused, setIsFocused] = useState(false);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const FILTERS = ['Tất cả', 'Cao cấp', 'Miễn phí', 'Cơ bản', 'Nâng cao'];
 
   // Reset state when screen is focused (navigation reset)
   useFocusEffect(
     useCallback(() => {
       return () => {
-        // Optional: Reset when leaving the screen
+        // Reset when leaving the screen
         setQuery('');
         setResults([]);
-        setSuggestions([]);
         setIsSearching(false);
         setLoading(false);
-        setSelectedFilter('All');
+        setSelectedFilter('Tất cả');
+        setShowHistoryDropdown(false);
       };
     }, [])
   );
 
-  // Reset state when focusing the screen (entering)
+  // Load all courses and history when entering
   useFocusEffect(
     useCallback(() => {
       setQuery('');
       setResults([]);
-      setSuggestions([]);
       setIsSearching(false);
       setLoading(false);
-      setSelectedFilter('All');
+      setSelectedFilter('Tất cả');
+      setShowHistoryDropdown(false);
+      loadHistory();
+      // Immediately load all courses
+      fetchAllCourses();
     }, [])
   );
-
-  const FILTERS = ['All', 'Premium', 'Free', 'Beginner', 'Advanced'];
-
-  useEffect(() => {
-    loadHistory();
-  }, []);
 
   const loadHistory = async () => {
     try {
@@ -86,43 +85,50 @@ export const SearchScreen = () => {
 
   const clearHistory = async () => {
     setHistory([]);
+    setShowHistoryDropdown(false);
     await AsyncStorage.removeItem(SEARCH_HISTORY_KEY);
   };
 
-  const fetchSuggestions = async (text: string) => {
-    if (text.length < 2) {
-      setSuggestions([]);
-      return;
-    }
+  const removeHistoryItem = async (item: string) => {
+    const newHistory = history.filter(h => h !== item);
+    setHistory(newHistory);
+    await AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+    if (newHistory.length === 0) setShowHistoryDropdown(false);
+  };
+
+  const fetchAllCourses = async () => {
+    setLoading(true);
+    setIsSearching(true);
     try {
-      const res = await fetch(`${API_URL}/courses/autocomplete?q=${text}`);
+      const res = await fetch(`${API_URL}/courses/search?q=&level=&priceType=`);
       const data = await res.json();
       if (data.success) {
-        setSuggestions(data.data);
+        setResults(data.data.courses);
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSearch = async (term: string, filterStr = selectedFilter, isLive = false) => {
-    if (!term.trim() && filterStr === 'All') return;
     if (!isLive) {
       Keyboard.dismiss();
       if (term.trim()) saveToHistory(term);
     }
+    setShowHistoryDropdown(false);
     setQuery(term);
     setIsSearching(true);
     setLoading(true);
-    setSuggestions([]);
 
     try {
       let level = '';
       let priceType = '';
-      if (filterStr === 'Beginner') level = 'beginner';
-      if (filterStr === 'Advanced') level = 'advanced';
-      if (filterStr === 'Free') priceType = 'free';
-      if (filterStr === 'Premium') priceType = 'paid';
+      if (filterStr === 'Cơ bản') level = 'beginner';
+      if (filterStr === 'Nâng cao') level = 'advanced';
+      if (filterStr === 'Miễn phí') priceType = 'free';
+      if (filterStr === 'Cao cấp') priceType = 'paid';
 
       const baseUrl = `${API_URL}/courses/search`;
       const queryParams = `q=${term}&level=${level}&priceType=${priceType}`;
@@ -149,7 +155,7 @@ export const SearchScreen = () => {
         <Text style={styles.resultInstructor}>{item.instructorId?.fullName}</Text>
         <View style={styles.resultMeta}>
           <Text style={styles.ratingText}>⭐ {item.averageRating}</Text>
-          <Text style={styles.priceText}>{item.price === 0 ? 'Free' : `$${item.price}`}</Text>
+          <Text style={styles.priceText}>{item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -167,56 +173,97 @@ export const SearchScreen = () => {
             styles.inputWrapper,
             isFocused && styles.inputWrapperFocused
           ]}>
-            <Ionicons 
-              name="search" 
-              size={18} 
-              color={isFocused ? COLORS.secondary : COLORS.gray400} 
-              style={styles.searchIcon} 
+            <Ionicons
+              name="search"
+              size={18}
+              color={isFocused ? COLORS.secondary : COLORS.gray400}
+              style={styles.searchIcon}
             />
             <TextInput
               style={styles.input}
-              placeholder="Search premium courses..."
+              placeholder="Tìm kiếm khóa học cao cấp..."
               placeholderTextColor={COLORS.textSecondary}
               value={query}
               onChangeText={(text) => {
                 setQuery(text);
-                fetchSuggestions(text);
-                
+
                 // Live Search Logic (Debounced)
                 if (searchTimeout.current) clearTimeout(searchTimeout.current);
                 if (text.trim().length > 0) {
+                  setShowHistoryDropdown(false);
                   searchTimeout.current = setTimeout(() => {
                     handleSearch(text, selectedFilter, true);
                   }, 500);
                 } else {
-                  setIsSearching(false);
-                  setResults([]);
+                  // No query - reload all courses
+                  searchTimeout.current = setTimeout(() => {
+                    fetchAllCourses();
+                  }, 300);
                 }
               }}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
+              onFocus={() => {
+                setIsFocused(true);
+                if (history.length > 0) setShowHistoryDropdown(true);
+              }}
+              onBlur={() => {
+                setIsFocused(false);
+                setTimeout(() => setShowHistoryDropdown(false), 200);
+              }}
               onSubmitEditing={() => handleSearch(query)}
               returnKeyType="search"
               autoFocus
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => { setQuery(''); setSuggestions([]); setIsSearching(false); }}>
+              <TouchableOpacity onPress={() => {
+                setQuery('');
+                setShowHistoryDropdown(history.length > 0);
+                fetchAllCourses();
+              }}>
                 <Ionicons name="close-circle" size={18} color={COLORS.gray400} />
               </TouchableOpacity>
             )}
           </View>
         </View>
 
+        {/* History Dropdown - overlays content below */}
+        {showHistoryDropdown && history.length > 0 && (
+          <View style={styles.historyDropdown}>
+            <View style={styles.historyDropdownHeader}>
+              <Text style={styles.historyDropdownTitle}>Lịch sử tìm kiếm</Text>
+              <TouchableOpacity onPress={clearHistory}>
+                <Text style={styles.clearAllText}>Xóa tất cả</Text>
+              </TouchableOpacity>
+            </View>
+            {history.map((item, idx) => (
+              <View key={idx} style={styles.historyDropdownItem}>
+                <TouchableOpacity
+                  style={styles.historyItemLeft}
+                  onPress={() => handleSearch(item)}
+                >
+                  <Ionicons name="time-outline" size={16} color={COLORS.gray400} />
+                  <Text style={styles.historyItemText} numberOfLines={1}>{item}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => removeHistoryItem(item)}
+                  style={styles.historyItemClose}
+                >
+                  <Ionicons name="close" size={16} color={COLORS.gray400} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Premium Filter Chips */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.chipScroll} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipScroll}
           contentContainerStyle={styles.chipContent}
         >
           {FILTERS.map(chip => (
-            <TouchableOpacity 
-              key={chip} 
+            <TouchableOpacity
+              key={chip}
               style={[
                 styles.chip,
                 selectedFilter === chip && styles.chipActive
@@ -240,7 +287,7 @@ export const SearchScreen = () => {
       <View style={styles.content}>
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.secondary} style={{ marginTop: 40 }} />
-        ) : isSearching ? (
+        ) : (
           <FlatList
             data={results}
             renderItem={renderResultItem}
@@ -249,39 +296,12 @@ export const SearchScreen = () => {
             ListEmptyComponent={() => (
               <View style={styles.emptyState}>
                 <Ionicons name="search-outline" size={80} color={COLORS.gray200} />
-                <Text style={styles.emptyText}>No results found for "{query}"</Text>
+                <Text style={styles.emptyText}>
+                  {query ? `Không tìm thấy kết quả cho "${query}"` : 'Không có khóa học nào'}
+                </Text>
               </View>
             )}
           />
-        ) : suggestions.length > 0 ? (
-          <View style={styles.suggestions}>
-            {suggestions.map((item, idx) => (
-              <TouchableOpacity key={idx} style={styles.suggestionItem} onPress={() => handleSearch(item.title)}>
-                <Ionicons name="search-outline" size={16} color={COLORS.gray400} />
-                <Text style={styles.suggestionText}>{item.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.historyContainer}>
-            <View style={styles.historyHeader}>
-              <Text style={styles.historyTitle}>Recent Searches</Text>
-              <TouchableOpacity onPress={clearHistory}>
-                <Text style={styles.clearText}>Clear</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.historyList}>
-              {history.map((item, idx) => (
-                <TouchableOpacity key={idx} style={styles.historyItem} onPress={() => handleSearch(item)}>
-                  <Ionicons name="time-outline" size={16} color={COLORS.gray400} />
-                  <Text style={styles.historyText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-              {history.length === 0 && (
-                <Text style={styles.noHistory}>Your recent searches will appear here.</Text>
-              )}
-            </View>
-          </View>
         )}
       </View>
     </View>
@@ -299,6 +319,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING[4],
     borderBottomWidth: 1,
     borderColor: COLORS.border,
+    zIndex: 100,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -342,6 +363,68 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     // @ts-ignore - Web outline removal
     outlineStyle: 'none' as any,
+  },
+  // History Dropdown
+  historyDropdown: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 120 : 100,
+    left: SPACING[5] + 40 + SPACING[3], // align with input
+    right: SPACING[5],
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    zIndex: 999,
+    ...SHADOW.md,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    maxHeight: 280,
+    overflow: 'hidden',
+  },
+  historyDropdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  historyDropdownTitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.primary,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  clearAllText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.secondaryDark,
+    fontWeight: '700',
+  },
+  historyDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  historyItemLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyItemText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray600,
+    marginLeft: SPACING[3],
+    flex: 1,
+    fontWeight: '500',
+  },
+  historyItemClose: {
+    padding: 4,
+    marginLeft: SPACING[2],
   },
   chipScroll: {
     marginTop: SPACING[5],
@@ -425,63 +508,6 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.label,
     color: COLORS.primary,
     fontWeight: '900',
-  },
-  suggestions: {
-    padding: SPACING[5],
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING[5],
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  suggestionText: {
-    ...TYPOGRAPHY.bodyMedium,
-    color: COLORS.primary,
-    marginLeft: SPACING[4],
-    fontWeight: '500',
-  },
-  historyContainer: {
-    padding: SPACING[6],
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING[6],
-  },
-  historyTitle: {
-    ...TYPOGRAPHY.label,
-    color: COLORS.primary,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  clearText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.secondaryDark,
-    fontWeight: '800',
-  },
-  historyList: {
-    gap: SPACING[5],
-  },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING[1],
-  },
-  historyText: {
-    ...TYPOGRAPHY.bodyMedium,
-    color: COLORS.gray600,
-    marginLeft: SPACING[4],
-    fontWeight: '500',
-  },
-  noHistory: {
-    ...TYPOGRAPHY.bodySmall,
-    color: COLORS.gray400,
-    textAlign: 'center',
-    marginTop: 60,
   },
   emptyState: {
     alignItems: 'center',

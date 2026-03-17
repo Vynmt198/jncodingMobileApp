@@ -85,8 +85,8 @@ export const CategoryScreen = () => {
           >
             <Ionicons name="arrow-back" size={24} color={COLORS.white} />
           </TouchableOpacity>
-          <Text style={styles.bannerTitle}>Explore Categories</Text>
-          <Text style={styles.bannerSubtitle}>Find the perfect elite course for your journey</Text>
+          <Text style={styles.bannerTitle}>Khám phá danh mục</Text>
+          <Text style={styles.bannerSubtitle}>Tìm kiếm khóa học hoàn hảo cho hành trình của bạn</Text>
         </View>
       </View>
 
@@ -109,7 +109,7 @@ export const CategoryScreen = () => {
                 </View>
                 <Text style={styles.categoryName} numberOfLines={1}>{cat.name}</Text>
                 <View style={styles.countBadge}>
-                  <Text style={styles.countText}>{cat.courseCount || 0} Courses</Text>
+                  <Text style={styles.countText}>{cat.courseCount || 0} Khóa học</Text>
                 </View>
                 <Ionicons 
                   name="chevron-forward" 

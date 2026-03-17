@@ -22,17 +22,17 @@ const API_URL = 'http://localhost:3000/api';
 const { width } = Dimensions.get('window');
 
 const LEVELS = [
-  { label: 'All', value: '' },
-  { label: 'Beginner', value: 'beginner' },
-  { label: 'Intermediate', value: 'intermediate' },
-  { label: 'Advanced', value: 'advanced' },
+  { label: 'Tất cả', value: '' },
+  { label: 'Cơ bản', value: 'beginner' },
+  { label: 'Trung bình', value: 'intermediate' },
+  { label: 'Nâng cao', value: 'advanced' },
 ];
 
 export const CourseListingScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const initialCategoryId = route.params?.categoryId || '';
-  const initialCategoryName = route.params?.categoryName || 'All Courses';
+  const initialCategoryName = route.params?.categoryName || 'Tất cả khóa học';
   const initialLevel = route.params?.level || '';
 
   const [courses, setCourses] = useState<any[]>([]);
@@ -114,7 +114,7 @@ export const CourseListingScreen = () => {
           <Image source={{ uri: item.thumbnail || 'https://placehold.co/150x120?text=Course' }} style={styles.gridImage} />
           <View style={styles.gridInfo}>
             <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.gridPrice}>{item.price === 0 ? 'Free' : `$${item.price}`}</Text>
+            <Text style={styles.gridPrice}>{item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}</Text>
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={12} color={COLORS.primary} />
               <Text style={styles.ratingText}>{item.averageRating}</Text>
@@ -138,7 +138,7 @@ export const CourseListingScreen = () => {
               <Ionicons name="star" size={14} color={COLORS.primary} />
               <Text style={styles.ratingText}>{item.averageRating}</Text>
             </View>
-            <Text style={styles.listPrice}>{item.price === 0 ? 'Free' : `$${item.price}`}</Text>
+            <Text style={styles.listPrice}>{item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -153,7 +153,7 @@ export const CourseListingScreen = () => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{route.params?.categoryName || 'All Courses'}</Text>
+          <Text style={styles.headerTitle}>{route.params?.categoryName || 'Tất cả khóa học'}</Text>
           <TouchableOpacity onPress={toggleView} style={styles.viewToggle}>
             <Ionicons name={isGridView ? "list-outline" : "grid-outline"} size={22} color={COLORS.primary} />
           </TouchableOpacity>
@@ -188,9 +188,9 @@ export const CourseListingScreen = () => {
         <View style={styles.filterBar}>
           <TouchableOpacity style={styles.filterBtn} onPress={() => bottomSheetRef.current?.expand()}>
             <Ionicons name="options-outline" size={18} color={COLORS.textSecondary} />
-            <Text style={styles.filterText}>Sort & Filter</Text>
+            <Text style={styles.filterText}>Sắp xếp & Lọc</Text>
           </TouchableOpacity>
-          <Text style={styles.resultCount}>{courses.length} Results</Text>
+          <Text style={styles.resultCount}>{courses.length} Kết quả</Text>
         </View>
       </View>
 
@@ -217,7 +217,7 @@ export const CourseListingScreen = () => {
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={64} color={COLORS.gray200} />
-              <Text style={styles.emptyText}>No courses found.</Text>
+              <Text style={styles.emptyText}>Không tìm thấy khóa học nào.</Text>
             </View>
           )}
         />
@@ -232,12 +232,12 @@ export const CourseListingScreen = () => {
         backdropComponent={renderBackdrop}
       >
         <BottomSheetView style={styles.sheetContent}>
-          <Text style={styles.sheetTitle}>Sort Courses By</Text>
+          <Text style={styles.sheetTitle}>Sắp xếp khóa học</Text>
           <View style={styles.sortOptions}>
             {[
-              { label: 'Newest First', value: 'newest' },
-              { label: 'Most Popular', value: 'popular' },
-              { label: 'Price: Low to High', value: 'price' }
+              { label: 'Mới nhất', value: 'newest' },
+              { label: 'Phổ biến nhất', value: 'popular' },
+              { label: 'Giá: Thấp đến cao', value: 'price' }
             ].map(opt => (
               <TouchableOpacity
                 key={opt.value}
