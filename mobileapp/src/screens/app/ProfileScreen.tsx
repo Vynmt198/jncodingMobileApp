@@ -34,10 +34,16 @@ export const ProfileScreen = () => {
   const navigation = useNavigation();
   const token = useAppSelector(s => s.auth.token);
   const currentUser = useAppSelector(s => s.auth.user);
+  const isAdmin = currentUser?.role === 'admin';
   const { data: certificates, isLoading: loadingCertificates } = useGetMyCertificatesQuery(undefined, {
-    skip: !token,
+    skip: !token || isAdmin,
   });
-  const { data: user, isLoading: loadingProfile, error: profileError } = useGetProfileQuery(undefined, {
+  const {
+    data: user,
+    isLoading: loadingProfile,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useGetProfileQuery(undefined, {
     skip: !token,
   });
   const [updateProfile, { isLoading: updating }] = useUpdateProfileMutation();
@@ -48,6 +54,15 @@ export const ProfileScreen = () => {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+  const notify = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      window.alert(`${title}\n\n${message}`);
+      return;
+    }
+    Alert.alert(title, message);
+  };
 
   useEffect(() => {
     AsyncStorage.getItem(BIOMETRIC_ENABLED_KEY).then(v => setBiometricEnabled(v === 'true'));
@@ -120,11 +135,25 @@ export const ProfileScreen = () => {
 
   const handleSave = async () => {
     try {
-      const updated = await updateProfile({ fullName: fullName.trim(), bio: bio.trim() || undefined }).unwrap();
-      dispatch(updateUser(updated));
-      Alert.alert('Thành công', 'Đã cập nhật thông tin');
-    } catch {
-      Alert.alert('Lỗi', 'Không thể cập nhật');
+      const payloadBio = bio.trim() || undefined;
+      const updated = await updateProfile({ fullName: fullName.trim(), bio: payloadBio }).unwrap();
+      // Cập nhật UI từ response (giữ đúng giá trị đã lưu, kể cả bio)
+      const newFullName = updated.fullName ?? fullName.trim();
+      const newBio = updated.bio !== undefined && updated.bio !== null ? updated.bio : (payloadBio ?? bio);
+      setFullName(newFullName);
+      setBio(newBio);
+      setAvatarUri(updated.avatar ?? null);
+      dispatch(updateUser({ ...updated, fullName: newFullName, bio: newBio }));
+      refetchProfile();
+      // Thông báo thành công ngay trên màn hình (rõ trên emulator), tự tắt sau 3 giây
+      setSaveSuccessMessage('Đã lưu thông tin.');
+      setTimeout(() => setSaveSuccessMessage(null), 3000);
+    } catch (err: unknown) {
+      const msg =
+        (err as { data?: { message?: string } })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Không thể cập nhật';
+      notify('Lỗi', msg);
     }
   };
 
@@ -236,41 +265,52 @@ export const ProfileScreen = () => {
           containerStyle={styles.input}
         />
 
-        <TouchableOpacity
-          style={[styles.menuRow, styles.paymentHistoryRow]}
-          onPress={() => (navigation as any).navigate(ROUTES.PAYMENT_HISTORY as never)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.paymentHistoryRowText}> Lịch sử thanh toán</Text>
-          <Text style={styles.paymentHistoryRowArrow}>›</Text>
-        </TouchableOpacity>
+        {!isAdmin && (
+          <TouchableOpacity
+            style={[styles.menuRow, styles.paymentHistoryRow]}
+            onPress={() => (navigation as any).navigate(ROUTES.PAYMENT_HISTORY as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.paymentHistoryRowText}> Lịch sử thanh toán</Text>
+            <Text style={styles.paymentHistoryRowArrow}>›</Text>
+          </TouchableOpacity>
+        )}
 
         
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Chứng chỉ của bạn</Text>
-        </View>
-        {loadingCertificates ? (
-          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: SPACING[4] }} />
-        ) : !certificates || certificates.length === 0 ? (
-          <Text style={styles.emptyCertificatesText}>Bạn chưa có chứng chỉ nào.</Text>
-        ) : (
-          certificates.map(cert => {
-            const course: any = (cert as any).courseId ?? null;
-            const courseTitle = course?.title ?? 'Khóa học';
-            const issuedAt = (cert as any).issuedAt;
-            return (
-              <View key={(cert as any)._id} style={styles.certificateCard}>
-                <Text style={styles.certificateCourseTitle}>{courseTitle}</Text>
-                <Text style={styles.certificateDate}>
-                  Cấp ngày:{' '}
-                  {issuedAt ? new Date(issuedAt).toLocaleDateString('vi-VN') : '—'}
-                </Text>
-              </View>
-            );
-          })
+        {!isAdmin && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Chứng chỉ của bạn</Text>
+            </View>
+            {loadingCertificates ? (
+              <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: SPACING[4] }} />
+            ) : !certificates || certificates.length === 0 ? (
+              <Text style={styles.emptyCertificatesText}>Bạn chưa có chứng chỉ nào.</Text>
+            ) : (
+              certificates.map(cert => {
+                const course: any = (cert as any).courseId ?? null;
+                const courseTitle = course?.title ?? 'Khóa học';
+                const issuedAt = (cert as any).issuedAt;
+                return (
+                  <View key={(cert as any)._id} style={styles.certificateCard}>
+                    <Text style={styles.certificateCourseTitle}>{courseTitle}</Text>
+                    <Text style={styles.certificateDate}>
+                      Cấp ngày:{' '}
+                      {issuedAt ? new Date(issuedAt).toLocaleDateString('vi-VN') : '—'}
+                    </Text>
+                  </View>
+                );
+              })
+            )}
+          </>
         )}
 
+        {saveSuccessMessage ? (
+          <View style={styles.saveSuccessBanner}>
+            <Text style={styles.saveSuccessText}>{saveSuccessMessage}</Text>
+          </View>
+        ) : null}
         <Button
           title={updating ? 'Đang lưu...' : 'Lưu thay đổi'}
           onPress={handleSave}
@@ -370,6 +410,21 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: SPACING[4],
+  },
+  saveSuccessBanner: {
+    backgroundColor: COLORS.success + '20',
+    borderWidth: 1,
+    borderColor: COLORS.success,
+    borderRadius: 8,
+    paddingVertical: SPACING[3],
+    paddingHorizontal: SPACING[4],
+    marginBottom: SPACING[4],
+  },
+  saveSuccessText: {
+    ...TYPOGRAPHY.bodyMedium,
+    color: COLORS.success,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   saveBtn: {
     marginBottom: SPACING[4],

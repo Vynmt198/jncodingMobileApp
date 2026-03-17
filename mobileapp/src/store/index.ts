@@ -12,6 +12,7 @@ import { enrollmentApi } from './api/enrollmentApi';
 import { enrollmentsApi } from './api/enrollmentsApi';
 import { paymentsApi } from './api/paymentsApi';
 import { instructorApi } from './api/instructorApi';
+import { adminApi } from './api/adminApi';
 import { setStoreForAxios } from '@/api/axiosInstance';
 
 // Persist config cho Auth slice: lưu thông tin đăng nhập,
@@ -34,6 +35,7 @@ const rootReducer = combineReducers({
   [enrollmentsApi.reducerPath]: enrollmentsApi.reducer,
   [paymentsApi.reducerPath]: paymentsApi.reducer,
   [instructorApi.reducerPath]: instructorApi.reducer,
+  [adminApi.reducerPath]: adminApi.reducer,
 });
 
 export const store = configureStore({
@@ -53,7 +55,8 @@ export const store = configureStore({
       .concat(enrollmentApi.middleware)
       .concat(enrollmentsApi.middleware)
       .concat(paymentsApi.middleware)
-      .concat(instructorApi.middleware),
+      .concat(instructorApi.middleware)
+      .concat(adminApi.middleware),
 });
 
 // Gắn store cho axios interceptor (để xử lý 401 → logout)

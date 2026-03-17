@@ -21,8 +21,11 @@ import {
   QuizQuestionScreen,
   QuizResultScreen,
   CoursePlayerScreen,
+  AdminDashboardScreen,
   AdminUserManagementScreen,
   AdminCourseApprovalScreen,
+  AdminLessonsScreen,
+  AdminReviewsScreen,
   InstructorDashboardScreen,
   InstructorAnalyticsScreen,
   InstructorDiscussionManagementScreen,
@@ -49,7 +52,16 @@ const TabNavigator = () => {
         },
       }}
     >
-      {role === 'instructor' ? (
+      {role === 'admin' ? (
+        <>
+          <Tab.Screen
+            name={ROUTES.ADMIN_DASHBOARD}
+            component={AdminDashboardScreen}
+            options={{ title: 'Thống kê' }}
+          />
+          <Tab.Screen name={ROUTES.PROFILE} component={ProfileScreen} />
+        </>
+      ) : role === 'instructor' ? (
         <>
           <Tab.Screen
             name={ROUTES.INSTRUCTOR_DASHBOARD}
@@ -103,6 +115,8 @@ export const AppNavigator = () => {
       <Stack.Screen name="QuizResult" component={QuizResultScreen} />
       <Stack.Screen name={ROUTES.ADMIN_USER_MANAGEMENT} component={AdminUserManagementScreen} />
       <Stack.Screen name={ROUTES.ADMIN_COURSE_APPROVAL} component={AdminCourseApprovalScreen} />
+      <Stack.Screen name={ROUTES.ADMIN_LESSONS} component={AdminLessonsScreen} />
+      <Stack.Screen name={ROUTES.ADMIN_REVIEWS} component={AdminReviewsScreen} />
       <Stack.Screen name={ROUTES.INSTRUCTOR_DASHBOARD} component={InstructorDashboardScreen} />
       <Stack.Screen name={ROUTES.INSTRUCTOR_ANALYTICS} component={InstructorAnalyticsScreen} />
       <Stack.Screen name={ROUTES.INSTRUCTOR_DISCUSSIONS} component={InstructorDiscussionManagementScreen} />

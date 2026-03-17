@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppSelector } from '@/store/hooks';
 import { HomeScreen } from './Home';
 import { InstructorDashboardScreen } from './Instructor/InstructorDashboardScreen';
-import { AdminUserManagementScreen } from './Admin/AdminUserManagementScreen';
+import { AdminDashboardScreen } from './Admin/AdminDashboardScreen';
 
 export const RoleDashboardScreen: React.FC = () => {
   const role = useAppSelector(state => state.auth.user?.role);
@@ -12,7 +12,7 @@ export const RoleDashboardScreen: React.FC = () => {
   }
 
   if (role === 'admin') {
-    return <AdminUserManagementScreen />;
+    return <AdminDashboardScreen />;
   }
 
   return <HomeScreen />;
