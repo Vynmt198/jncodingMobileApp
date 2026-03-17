@@ -24,6 +24,7 @@ export const APP_ROUTES = {
   INSTRUCTOR_ANALYTICS: 'InstructorAnalytics',
   INSTRUCTOR_DISCUSSIONS: 'InstructorDiscussions',
   INSTRUCTOR_CREATE_COURSE: 'InstructorCreateCourse',
+  INSTRUCTOR_EDIT_COURSE: 'InstructorEditCourse',
 } as const;
 
 // Course routes

@@ -59,6 +59,7 @@ export const CourseDetailScreen = () => {
   // Lấy user hiện tại để quyết định quyền review
   const auth = useSelector((state: RootState) => state.auth);
   const currentUserId = (auth as any)?.user?._id;
+  const currentRole = (auth as any)?.user?.role as string | undefined;
 
   const [myReview, setMyReview] = useState<any | null>(null);
   const [rating, setRating] = useState<number>(0);
@@ -68,6 +69,7 @@ export const CourseDetailScreen = () => {
   const isEnrolled = !!course?.isEnrolled;
   const price = Number(course?.price) ?? 0;
   const loading = loadingCourse || !course;
+  const hidePurchaseFooter = currentRole === 'instructor' || currentRole === 'admin';
 
   const canReview = !!currentUserId && isEnrolled;
 
@@ -249,11 +251,11 @@ export const CourseDetailScreen = () => {
 
   const renderOverview = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>About this course</Text>
+      <Text style={styles.sectionTitle}>Về khóa học này</Text>
       <Text style={styles.description}>{course.description}</Text>
       
         <View style={styles.instructorCard}>
-        <Text style={styles.instructorTitle}>Instructor</Text>
+        <Text style={styles.instructorTitle}>Giảng viên</Text>
         <View style={styles.instructorInfo}>
           <Image 
             source={{ uri: course.instructorId?.avatar || 'https://placehold.co/60x60?text=I' }} 
@@ -261,7 +263,7 @@ export const CourseDetailScreen = () => {
           />
           <View style={styles.instructorText}>
             <Text style={styles.instructorName}>{course.instructorId?.fullName}</Text>
-            <Text style={styles.instructorBio} numberOfLines={2}>{course.instructorId?.bio || 'Expert Instructor'}</Text>
+            <Text style={styles.instructorBio} numberOfLines={2}>{course.instructorId?.bio || 'Giảng viên chuyên nghiệp'}</Text>
           </View>
         </View>
       </View>
@@ -306,9 +308,9 @@ export const CourseDetailScreen = () => {
     return (
       <View style={styles.tabContent}>
         <View style={styles.curriculumHeader}>
-          <Text style={styles.curriculumTitle}>Course Content</Text>
+          <Text style={styles.curriculumTitle}>Nội dung khóa học</Text>
           <Text style={styles.curriculumMeta}>
-            {sections.length} sections • {curriculum.length} lectures • {formatTotalDuration(curriculum.reduce((acc, l) => acc + (l.duration || 0), 0))} total length
+            {sections.length} phần • {curriculum.length} bài giảng • {formatTotalDuration(curriculum.reduce((acc, l) => acc + (l.duration || 0), 0))} tổng thời lượng
           </Text>
         </View>
 
@@ -331,7 +333,7 @@ export const CourseDetailScreen = () => {
                     {section.title}
                   </Text>
                 </View>
-                <Text style={styles.sectionMeta}>{section.lessons.length} lessons</Text>
+                <Text style={styles.sectionMeta}>{section.lessons.length} bài học</Text>
               </TouchableOpacity>
 
               {isExpanded && (
@@ -395,7 +397,7 @@ export const CourseDetailScreen = () => {
                         )}
                         {lesson.isPreview && !course.isEnrolled && (
                           <View style={styles.previewBadge}>
-                            <Text style={styles.previewText}>Preview</Text>
+                            <Text style={styles.previewText}>Xem trước</Text>
                           </View>
                         )}
                       </LessonRowWrapper>
@@ -406,7 +408,7 @@ export const CourseDetailScreen = () => {
             </View>
           );
         })}
-        {curriculum.length === 0 && <Text style={styles.emptyText}>No lessons found.</Text>}
+        {curriculum.length === 0 && <Text style={styles.emptyText}>Chưa có bài học nào.</Text>}
       </View>
     );
   };
@@ -425,7 +427,7 @@ export const CourseDetailScreen = () => {
               />
             ))}
          </View>
-         <Text style={styles.totalReviews}>Based on {reviewsCount} reviews</Text>
+         <Text style={styles.totalReviews}>Dựa trên {reviewsCount} đánh giá</Text>
          {myReview && (
            <Text style={[styles.totalReviews, { marginTop: SPACING[1] }]}>
              Bạn đã đánh giá: {myReview.rating}★
@@ -532,7 +534,7 @@ export const CourseDetailScreen = () => {
           <Text style={styles.reviewComment}>{rev.reviewText}</Text>
         </View>
       ))}
-      {reviews.length === 0 && <Text style={styles.emptyText}>No reviews yet.</Text>}
+      {reviews.length === 0 && <Text style={styles.emptyText}>Chưa có đánh giá nào.</Text>}
     </View>
   );
 
@@ -562,7 +564,7 @@ export const CourseDetailScreen = () => {
                   </View>
                   <View style={styles.metaItem}>
                      <Ionicons name="people" size={16} color={COLORS.white} />
-                     <Text style={styles.metaText}>{course.enrollmentCount} Learners</Text>
+                     <Text style={styles.metaText}>{course.enrollmentCount} Học viên</Text>
                   </View>
                   <View style={styles.metaItem}>
                      <Ionicons name="time" size={16} color={COLORS.white} />
@@ -577,14 +579,14 @@ export const CourseDetailScreen = () => {
 
         {/* Tabs */}
         <View style={styles.tabsContainer}>
-          {(['overview', 'curriculum', 'reviews'] as TabType[]).map((tab) => (
+          {([{ key: 'overview' as TabType, label: 'Tổng quan' }, { key: 'curriculum' as TabType, label: 'Chương trình' }, { key: 'reviews' as TabType, label: 'Đánh giá' }]).map((tab) => (
             <TouchableOpacity 
-              key={tab} 
-              style={[styles.tab, activeTab === tab && styles.activeTab]}
-              onPress={() => setActiveTab(tab)}
+              key={tab.key} 
+              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+              onPress={() => setActiveTab(tab.key)}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+                {tab.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -599,32 +601,34 @@ export const CourseDetailScreen = () => {
       </ScrollView>
 
       {/* Sticky Footer */}
-      <View style={styles.footer}>
-         <View>
+      {!hidePurchaseFooter ? (
+        <View style={styles.footer}>
+          <View>
             <Text style={styles.footerPriceLabel}>Tổng giá</Text>
             <Text style={styles.footerPrice}>{price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')} ₫`}</Text>
-         </View>
-         <TouchableOpacity
-           style={styles.enrollBtn}
-           onPress={handleEnrollPress}
-           disabled={enrolling}
-           activeOpacity={0.85}
-           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-         >
+          </View>
+          <TouchableOpacity
+            style={styles.enrollBtn}
+            onPress={handleEnrollPress}
+            disabled={enrolling}
+            activeOpacity={0.85}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <LinearGradient
               colors={[COLORS.secondary, COLORS.secondaryDark]}
               style={[styles.enrollGradient, { pointerEvents: 'none' }]}
             >
-               {enrolling ? (
-                 <ActivityIndicator size="small" color={COLORS.primaryDark} />
-               ) : (
-                 <Text style={[styles.enrollText, { pointerEvents: 'none' }]}>
-                   {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
-                 </Text>
-               )}
+              {enrolling ? (
+                <ActivityIndicator size="small" color={COLORS.primaryDark} />
+              ) : (
+                <Text style={[styles.enrollText, { pointerEvents: 'none' }]}>
+                  {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
+                </Text>
+              )}
             </LinearGradient>
-         </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 };
