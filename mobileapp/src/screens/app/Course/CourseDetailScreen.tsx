@@ -71,11 +71,12 @@ export const CourseDetailScreen = () => {
 
   const canReview = !!currentUserId && isEnrolled;
 
-  // Tính lại rating hiển thị dựa trên list reviews hiện tại (sau khi tạo / sửa / xóa)
-  const totalRatings = reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
-  const reviewsCount = reviews.length;
+  // Dùng list reviews hiện tại; nếu rỗng nhưng đã có myReview thì dùng myReview để hiển thị số sao
+  const effectiveReviews = reviews.length > 0 ? reviews : myReview ? [myReview] : [];
+  const totalRatings = effectiveReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+  const reviewsCount = effectiveReviews.length;
   const averageRating =
-    reviewsCount > 0 ? Number((totalRatings / reviewsCount).toFixed(1)) : Number(course?.averageRating ?? 0);
+    reviewsCount > 0 ? Number((totalRatings / reviewsCount).toFixed(1)) : 0;
 
   // Khi myReview thay đổi (sau khi gửi lần đầu hoặc reload), đồng bộ lại rating/comment trong form
   useEffect(() => {
@@ -91,7 +92,14 @@ export const CourseDetailScreen = () => {
     axiosInstance
       .get(`/courses/${courseId}/reviews`)
       .then(res => {
-        if (res.data?.success && Array.isArray(res.data.data)) setReviews(res.data.data);
+        if (!res.data?.success) return;
+        const payload = res.data.data;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.reviews)
+          ? payload.reviews
+          : [];
+        setReviews(list);
       })
       .catch(() => {});
   }, [courseId]);

@@ -34,6 +34,7 @@ export const EnrolledCourseCard: React.FC<EnrolledCourseCardProps> = ({
   const progress = enrollment.progress ?? 0;
   const totalLessons = enrollment.totalLessons ?? 0;
   const completedLessons = enrollment.completedLessons ?? 0;
+  const isCompleted = progress >= 100;
 
   return (
     <TouchableOpacity
@@ -67,7 +68,9 @@ export const EnrolledCourseCard: React.FC<EnrolledCourseCardProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueBtnText}>Tiếp tục học</Text>
+            <Text style={styles.continueBtnText}>
+              {isCompleted ? 'Đã hoàn thành' : 'Tiếp tục học'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
