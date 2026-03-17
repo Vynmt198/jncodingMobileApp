@@ -190,8 +190,25 @@ const createCourse = async (req, res, next) => {
 const updateCourse = async (req, res, next) => {
     try {
         const { title, description, syllabus, categoryId, level, price, thumbnail, estimatedCompletionHours, submitForReview } = req.body;
-        const isDraft = req.course.status === 'draft';
-        const canEditFull = isDraft || req.course.status === 'rejected';
+        const currentStatus = req.course.status;
+        const wantsSubmitForReview = submitForReview === true || submitForReview === 'true';
+
+        if (currentStatus === 'rejected') {
+            if (!wantsSubmitForReview) {
+                return res.status(403).json({ success: false, message: 'When course is rejected, only resubmit for review is allowed.' });
+            }
+            const course = await Course.findByIdAndUpdate(
+                req.params.id,
+                { $set: { status: 'pending' } },
+                { new: true, runValidators: true }
+            )
+                .populate('instructorId', 'fullName avatar')
+                .populate('categoryId', 'name slug');
+            return res.status(200).json({ success: true, data: course });
+        }
+
+        const isDraft = currentStatus === 'draft';
+        const canEditFull = isDraft;
         const updateData = {};
         if (canEditFull) {
             if (title !== undefined) updateData.title = title;
@@ -203,7 +220,7 @@ const updateCourse = async (req, res, next) => {
         if (syllabus !== undefined) updateData.syllabus = syllabus;
         if (thumbnail !== undefined) updateData.thumbnail = thumbnail;
         if (estimatedCompletionHours !== undefined) updateData.estimatedCompletionHours = estimatedCompletionHours;
-        if (submitForReview === true && (req.course.status === 'draft' || req.course.status === 'rejected')) {
+        if (wantsSubmitForReview && currentStatus === 'draft') {
             updateData.status = 'pending';
         }
         const course = await Course.findByIdAndUpdate(
@@ -221,6 +238,15 @@ const updateCourse = async (req, res, next) => {
 
 const deleteCourse = async (req, res, next) => {
     try {
+        const status = req.course.status;
+        const isAdmin = req.user.role === 'admin';
+        const instructorCanDeleteStatuses = ['draft', 'pending', 'rejected'];
+        if (status === 'disabled' && !isAdmin) {
+            return res.status(403).json({ success: false, message: 'Only admin can delete a disabled course.' });
+        }
+        if (!isAdmin && !instructorCanDeleteStatuses.includes(status)) {
+            return res.status(403).json({ success: false, message: 'Instructor can only delete courses in draft, pending, or rejected status.' });
+        }
         await Lesson.deleteMany({ courseId: req.params.id });
         await Course.findByIdAndDelete(req.params.id);
         return res.status(200).json({ success: true, message: 'Course deleted.' });
