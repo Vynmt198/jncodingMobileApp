@@ -44,7 +44,7 @@ export const QuizQuestionScreen = () => {
   const handleSubmit = async () => {
     if (!quiz || !quizId) return;
     const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const answersPayload = answers.map(a => (a === null ? '' : a));
+    const answersPayload = answers.map(a => (a === null ? '' : a)) as unknown[];
     try {
       const result = await submitAttempt({
         quizId,
@@ -81,7 +81,7 @@ export const QuizQuestionScreen = () => {
     );
   }
 
-  if (isLoading || !quiz) {
+  if (isLoading) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -93,6 +93,17 @@ export const QuizQuestionScreen = () => {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>Không tải được đề bài.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.link}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!quiz) {
+    return (
+      <View style={[styles.center, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>Không có dữ liệu quiz.</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.link}>Quay lại</Text>
         </TouchableOpacity>
@@ -228,8 +239,8 @@ export const QuizQuestionScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING[5] },
-  errorText: { ...TYPOGRAPHY.body, color: COLORS.gray700, marginBottom: SPACING[2] },
-  link: { ...TYPOGRAPHY.body, color: COLORS.primary, fontWeight: '600' },
+  errorText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray700, marginBottom: SPACING[2] },
+  link: { ...TYPOGRAPHY.bodyMedium, color: COLORS.primary, fontWeight: '600' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -240,16 +251,16 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   headerBack: { padding: SPACING[2] },
-  progress: { ...TYPOGRAPHY.bodyBold, color: COLORS.gray800 },
+  progress: { ...TYPOGRAPHY.label, color: COLORS.gray800 },
   headerRight: { width: 40 },
   bar: { height: 4, backgroundColor: COLORS.gray200 },
   barFill: { height: '100%', backgroundColor: COLORS.primary },
   scroll: { flex: 1 },
   scrollContent: { padding: SPACING[5] },
-  questionType: { ...TYPOGRAPHY.small, color: COLORS.primary, marginBottom: SPACING[2], textTransform: 'uppercase' },
+  questionType: { ...TYPOGRAPHY.caption, color: COLORS.primary, marginBottom: SPACING[2], textTransform: 'uppercase' },
   questionText: { ...TYPOGRAPHY.h3, color: COLORS.gray900, marginBottom: SPACING[4], lineHeight: 26 } as any,
   codeBlock: { backgroundColor: COLORS.gray100, borderRadius: BORDER_RADIUS.md, padding: SPACING[3], marginBottom: SPACING[4] },
-  codeText: { ...TYPOGRAPHY.small, fontFamily: 'monospace', color: COLORS.gray800 },
+  codeText: { ...TYPOGRAPHY.bodySmall, fontFamily: 'monospace', color: COLORS.gray800 },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -272,7 +283,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optionRadioSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  optionText: { ...TYPOGRAPHY.body, color: COLORS.gray800, flex: 1 },
+  optionText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray800, flex: 1 },
   optionTextSelected: { color: COLORS.gray900, fontWeight: '600' },
   tfRow: { flexDirection: 'row', gap: SPACING[4], marginTop: SPACING[2] },
   tfBtn: {
@@ -287,7 +298,7 @@ const styles = StyleSheet.create({
     gap: SPACING[2],
   },
   tfBtnSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight + '15' },
-  tfLabel: { ...TYPOGRAPHY.bodyBold, color: COLORS.gray800 },
+  tfLabel: { ...TYPOGRAPHY.label, color: COLORS.gray800 },
   footer: {
     paddingHorizontal: SPACING[5],
     paddingTop: SPACING[4],

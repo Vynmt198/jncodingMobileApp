@@ -7,6 +7,7 @@ import {
   TouchableOpacityProps,
   ViewStyle,
   TextStyle,
+  StyleProp,
   Animated,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/constants/theme';
@@ -17,8 +18,8 @@ interface ButtonProps extends TouchableOpacityProps {
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
 }
 
@@ -52,8 +53,8 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getContainerStyle = (): ViewStyle => {
-    let backgroundColor = COLORS.primary;
-    let borderColor = 'transparent';
+    let backgroundColor: string = COLORS.primary;
+    let borderColor: string = 'transparent';
     let borderWidth = 0;
 
     switch (variant) {

@@ -5,7 +5,7 @@ const vnpayService = require('../services/vnpayService');
 
 exports.createPayment = async (req, res, next) => {
     try {
-        const { amount, courseId, courseIds } = req.body;
+        const { amount, courseId, courseIds, returnUrl } = req.body;
         const userId = req.user._id;
 
         const orderId = `${Date.now()}_${userId}`;
@@ -59,11 +59,18 @@ exports.createPayment = async (req, res, next) => {
             courseIds: ids,
         });
 
+        const safeReturnUrl = typeof returnUrl === 'string' && /^https?:\/\//i.test(returnUrl) && returnUrl.length <= 2048
+            ? returnUrl
+            : undefined;
+
+        console.log('[VNPay] returnUrl override:', safeReturnUrl || '(none)', 'default:', require('../config/vnpay').vnp_ReturnUrl);
+
         const paymentUrl = vnpayService.createPaymentUrl(
             orderId,
             amount,
             orderInfo,
-            ipAddr
+            ipAddr,
+            safeReturnUrl
         );
 
         console.log('Payment URL created:', paymentUrl);

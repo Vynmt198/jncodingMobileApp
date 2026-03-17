@@ -3,7 +3,7 @@ const vnpayConfig = require('../config/vnpay');
 const qs = require('qs');
 
 class VNPayService {
-    createPaymentUrl(orderId, amount, orderInfo, ipAddr) {
+    createPaymentUrl(orderId, amount, orderInfo, ipAddr, returnUrl) {
         const date = new Date();
         // 1. Xử lý thời gian GMT+7 (Việt Nam)
         const vnTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
@@ -22,7 +22,7 @@ class VNPayService {
             'vnp_OrderInfo': orderInfo,
             'vnp_OrderType': 'other',
             'vnp_Locale': 'vn',
-            'vnp_ReturnUrl': vnpayConfig.vnp_ReturnUrl,
+            'vnp_ReturnUrl': returnUrl || vnpayConfig.vnp_ReturnUrl,
             'vnp_IpAddr': ipAddr,
             'vnp_CreateDate': createDate,
             'vnp_ExpireDate': expireDate, // Đã fix lỗi ReferenceError ở đây

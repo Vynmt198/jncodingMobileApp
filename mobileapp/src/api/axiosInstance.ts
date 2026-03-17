@@ -57,7 +57,12 @@ export const TOKEN_KEY = 'access_token';
 // ─── Request interceptor: attach JWT ────────────────────────────────────────
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = await getSecureItem(TOKEN_KEY);
+    // Ưu tiên SecureStore (nguồn sự thật cho interceptor),
+    // fallback sang Redux-persist token để tránh lệch state sau khi reload app.
+    const secureToken = await getSecureItem(TOKEN_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reduxToken = (storeRef?.getState?.() as any)?.auth?.token as string | null | undefined;
+    const token = secureToken ?? reduxToken ?? null;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

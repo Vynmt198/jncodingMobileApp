@@ -17,6 +17,7 @@ import { Button, Card } from '@/components/ui';
 import { useCreatePaymentMutation } from '@/store/api/paymentsApi';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
+import { API_BASE_URL } from '@/api/axiosInstance';
 
 type PaymentRouteProp = RouteProp<AppStackParamList, typeof ROUTES.PAYMENT>;
 type PaymentNavProp = NativeStackNavigationProp<AppStackParamList, typeof ROUTES.PAYMENT>;
@@ -39,7 +40,9 @@ export const PaymentScreen = () => {
       return;
     }
     try {
-      const { paymentUrl, orderId } = await createPayment({ courseId, amount: price }).unwrap();
+      const origin = API_BASE_URL.replace(/\/api\/?$/i, '');
+      const returnUrl = `${origin}/api/payments/vnpay-return`;
+      const { paymentUrl, orderId } = await createPayment({ courseId, amount: price, returnUrl }).unwrap();
       if (paymentUrl) {
         const canOpen = await Linking.canOpenURL(paymentUrl);
         if (canOpen) {
