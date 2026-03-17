@@ -116,21 +116,55 @@ export const InstructorCourseCreateScreen: React.FC = () => {
   useEffect(() => {
     if (editingCourseId) {
       setCreatedCourseId(editingCourseId);
+    } else {
+      setCreatedCourseId(null);
+      setCurriculum([]);
+      setForm({
+        title: '',
+        description: '',
+        syllabus: '',
+        categoryId: '',
+        level: 'beginner',
+        price: '0',
+        thumbnail: '',
+        estimatedCompletionHours: '0',
+      });
+      setEditingLessonId(null);
+      setLessonForm({
+        title: '',
+        type: 'video',
+        videoUrl: '',
+        duration: '',
+        isPreview: false,
+        resources: '',
+        content: '',
+      });
     }
   }, [editingCourseId]);
 
+  const curriculumFromApi = (createdCurriculum as any[]) ?? [];
+  const curriculumKey = curriculumFromApi
+    .map(l => String((l as any)?._id ?? (l as any)?.id ?? ''))
+    .join('|');
+
   useEffect(() => {
-    setCurriculum((createdCurriculum as any[]) ?? []);
-  }, [createdCurriculum]);
+    setCurriculum(prev => {
+      const prevKey = (prev ?? [])
+        .map(l => String((l as any)?._id ?? (l as any)?.id ?? ''))
+        .join('|');
+      if (prevKey === curriculumKey) return prev;
+      return curriculumFromApi;
+    });
+  }, [curriculumKey]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true);
         const res = await axiosInstance.get(API_ENDPOINTS.CATEGORIES.LIST);
-        const json = res.data as { success?: boolean; data?: Category[] };
-        if (json?.success && Array.isArray(json.data)) {
-          setCategories(json.data);
+        const data = (res as any)?.data;
+        if (data?.success && Array.isArray(data.data)) {
+          setCategories(data.data);
         } else {
           setCategories([]);
         }
@@ -410,18 +444,17 @@ export const InstructorCourseCreateScreen: React.FC = () => {
 
       setUploadingThumbnail(true);
       const formData = new FormData();
-      // Backend expects field name "thumbnail" (upload.single('thumbnail'))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Backend expects field name "thumbnail"
       formData.append('thumbnail', {
         uri: result.assets[0].uri,
         name: 'thumbnail.jpg',
         type: 'image/jpeg',
       } as any);
 
-      const res = await axiosInstance.post(API_ENDPOINTS.UPLOAD.THUMBNAIL, formData, {
+      const response = await axiosInstance.post(API_ENDPOINTS.UPLOAD.THUMBNAIL, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const json = res.data;
+      const json = (response as any)?.data;
       const url = json?.data?.url || json?.url;
       if (!url) {
         throw new Error('Không lấy được URL ảnh từ server');
