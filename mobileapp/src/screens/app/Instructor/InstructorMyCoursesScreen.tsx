@@ -306,7 +306,7 @@ export const InstructorMyCoursesScreen: React.FC = () => {
           }
           renderItem={({ item }) => {
             const handleEditCourse = () => {
-              navigation.navigate(ROUTES.INSTRUCTOR_CREATE_COURSE as never, {
+              navigation.navigate(ROUTES.INSTRUCTOR_EDIT_COURSE as never, {
                 courseId: item._id,
               });
             };
