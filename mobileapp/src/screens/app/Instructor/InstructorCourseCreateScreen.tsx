@@ -14,6 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Input, Button, Select } from '@/components/ui';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 import {
   useCreateCourseMutation,
   useCreateLessonMutation,
@@ -163,9 +165,9 @@ export const InstructorCourseCreateScreen: React.FC = () => {
       try {
         setLoadingCategories(true);
         const res = await axiosInstance.get(API_ENDPOINTS.CATEGORIES.LIST);
-        const data = (res as any)?.data;
-        if (data?.success && Array.isArray(data.data)) {
-          setCategories(data.data);
+        const json = (res as any)?.data;
+        if (json?.success && Array.isArray(json.data)) {
+          setCategories(json.data);
         } else {
           setCategories([]);
         }
@@ -446,6 +448,7 @@ export const InstructorCourseCreateScreen: React.FC = () => {
       setUploadingThumbnail(true);
       const formData = new FormData();
       // Backend expects field name "thumbnail"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       formData.append('thumbnail', {
         uri: result.assets[0].uri,
         name: 'thumbnail.jpg',
