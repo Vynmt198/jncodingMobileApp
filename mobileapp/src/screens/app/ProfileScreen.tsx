@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppSelector } from '@/store/hooks';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,6 +26,10 @@ import { logout, updateUser, setPendingAuthRoute } from '@/store/slices/authSlic
 import { removeSecureItem } from '@/utils/secureStorage';
 import { TOKEN_KEY } from '@/api/axiosInstance';
 import { ROUTES } from '@/constants/routes';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
+import { API_BASE_URL } from '@/api/axiosInstance';
+import { getSecureItem } from '@/utils/secureStorage';
 
 const DEFAULT_AVATAR = null;
 const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
@@ -32,6 +37,7 @@ const BIOMETRIC_ENABLED_KEY = '@biometric_enabled';
 export const ProfileScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const token = useAppSelector(s => s.auth.token);
   const currentUser = useAppSelector(s => s.auth.user);
   const isAdmin = currentUser?.role === 'admin';
@@ -57,6 +63,35 @@ export const ProfileScreen = () => {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+
+  // Highlight chứng chỉ theo courseId khi được điều hướng từ "Xem chứng chỉ"
+  const highlightCourseId: string | undefined = route?.params?.highlightCourseId;
+  const scrollRef = useRef<ScrollView | null>(null);
+  const highlightDoneRef = useRef<string | null>(null);
+  const highlightAnim = useRef(new Animated.Value(0)).current;
+
+  const highlightCourseIdStr = useMemo(() => (highlightCourseId ? String(highlightCourseId) : undefined), [highlightCourseId]);
+
+  useEffect(() => {
+    // Reset khi user bấm "Xem chứng chỉ" từ khóa khác
+    if (highlightCourseIdStr && highlightDoneRef.current !== highlightCourseIdStr) {
+      highlightDoneRef.current = null;
+      highlightAnim.setValue(0);
+    }
+  }, [highlightCourseIdStr, highlightAnim]);
+
+  const runHighlight = () => {
+    highlightAnim.stopAnimation();
+    highlightAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(highlightAnim, { toValue: 1, duration: 260, useNativeDriver: false }),
+      Animated.timing(highlightAnim, { toValue: 0, duration: 260, useNativeDriver: false }),
+      Animated.timing(highlightAnim, { toValue: 1, duration: 260, useNativeDriver: false }),
+      Animated.timing(highlightAnim, { toValue: 0, duration: 260, useNativeDriver: false }),
+      Animated.timing(highlightAnim, { toValue: 1, duration: 260, useNativeDriver: false }),
+      Animated.timing(highlightAnim, { toValue: 0, duration: 260, useNativeDriver: false }),
+    ]).start();
+  };
   const notify = (title: string, message: string) => {
     if (Platform.OS === 'web') {
       // eslint-disable-next-line no-alert
@@ -94,6 +129,46 @@ export const ProfileScreen = () => {
 
   const pickImage = async (source: 'camera' | 'library') => {
     try {
+      const uploadAvatarAndGetUrl = async (asset: ImagePicker.ImagePickerAsset): Promise<string> => {
+        const localUri = asset.uri;
+        const filename = asset.fileName || 'avatar.jpg';
+        const mimeType = (asset.mimeType as string | undefined) || 'image/jpeg';
+
+        const formData = new FormData();
+        // Backend expects field name "avatar"
+        // Lưu ý: Android thường trả URI dạng content://; append kiểu {uri,name,type} đôi khi gây "Network request failed".
+        // Fallback sang Blob để upload ổn định hơn.
+        if (localUri.startsWith('content://')) {
+          const blob = await (await fetch(localUri)).blob();
+          formData.append('avatar', blob as any, filename);
+        } else {
+          formData.append('avatar', {
+            uri: localUri,
+            name: filename,
+            type: mimeType,
+          } as any);
+        }
+
+        // Dùng fetch thay vì axios để tránh "Network Error" khi upload multipart (content://) trên Android.
+        const token = await getSecureItem(TOKEN_KEY);
+        const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.UPLOAD.AVATAR}`, {
+          method: 'POST',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Accept: 'application/json',
+          },
+          body: formData,
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = (json as any)?.message || `Upload failed (${res.status})`;
+          throw new Error(msg);
+        }
+        const url = (json as any)?.data?.url || (json as any)?.url;
+        if (!url) throw new Error('Không lấy được URL ảnh từ server');
+        return String(url);
+      };
+
       if (source === 'camera') {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
@@ -107,8 +182,9 @@ export const ProfileScreen = () => {
           quality: 0.8,
         });
         if (!result.canceled && result.assets[0]) {
-          setAvatarUri(result.assets[0].uri);
-          await updateProfile({ avatar: result.assets[0].uri }).unwrap();
+          const url = await uploadAvatarAndGetUrl(result.assets[0]);
+          setAvatarUri(url);
+          await updateProfile({ avatar: url }).unwrap();
           Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');
         }
       } else {
@@ -124,14 +200,19 @@ export const ProfileScreen = () => {
           quality: 0.8,
         });
         if (!result.canceled && result.assets[0]) {
-          setAvatarUri(result.assets[0].uri);
-          await updateProfile({ avatar: result.assets[0].uri }).unwrap();
+          const url = await uploadAvatarAndGetUrl(result.assets[0]);
+          setAvatarUri(url);
+          await updateProfile({ avatar: url }).unwrap();
           Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');
         }
       }
     } catch (e) {
-      console.warn('Image picker error', e);
-      Alert.alert('Không thể chọn ảnh');
+      const msg =
+        (e as any)?.response?.data?.message ??
+        (e as any)?.message ??
+        'Không thể chọn/cập nhật ảnh đại diện';
+      console.warn('Avatar update error', e);
+      Alert.alert('Không thể cập nhật ảnh', msg);
     }
   };
 
@@ -219,7 +300,13 @@ export const ProfileScreen = () => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={r => {
+          scrollRef.current = r;
+        }}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Hồ sơ</Text>
 
         <View style={styles.avatarSection}>
@@ -296,13 +383,48 @@ export const ProfileScreen = () => {
                 const course: any = (cert as any).courseId ?? null;
                 const courseTitle = course?.title ?? 'Khóa học';
                 const issuedAt = (cert as any).issuedAt;
+                const courseId = course?._id ? String(course._id) : undefined;
+                const isTarget = !!highlightCourseIdStr && !!courseId && courseId === highlightCourseIdStr;
+                const animatedStyle = isTarget
+                  ? {
+                      borderColor: highlightAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [COLORS.border, COLORS.primary],
+                      }),
+                      backgroundColor: highlightAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [COLORS.surface, `${COLORS.primary}22`],
+                      }),
+                      transform: [
+                        {
+                          scale: highlightAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.02],
+                          }),
+                        },
+                      ],
+                    }
+                  : null;
                 return (
-                  <View key={(cert as any)._id} style={styles.certificateCard}>
+                  <Animated.View
+                    key={(cert as any)._id}
+                    style={[styles.certificateCard, isTarget && styles.certificateCardHighlight, animatedStyle as any]}
+                    onLayout={e => {
+                      if (!isTarget) return;
+                      if (!highlightCourseIdStr) return;
+                      if (highlightDoneRef.current === highlightCourseIdStr) return;
+                      highlightDoneRef.current = highlightCourseIdStr;
+                      const y = e.nativeEvent.layout.y;
+                      // Cuộn xuống để card nằm trong tầm nhìn, chừa khoảng trống header/title
+                      scrollRef.current?.scrollTo({ y: Math.max(0, y - 140), animated: true });
+                      runHighlight();
+                    }}
+                  >
                     <Text style={styles.certificateCourseTitle}>{courseTitle}</Text>
                     <Text style={styles.certificateDate}>
                       Cấp ngày: {issuedAt ? new Date(issuedAt).toLocaleDateString('vi-VN') : '—'}
                     </Text>
-                  </View>
+                  </Animated.View>
                 );
               })
             )}
@@ -508,6 +630,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: SPACING[3],
+  },
+  certificateCardHighlight: {
+    borderWidth: 2,
   },
   certificateCourseTitle: {
     ...TYPOGRAPHY.bodyMedium,

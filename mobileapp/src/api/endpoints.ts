@@ -90,6 +90,7 @@ export const API_ENDPOINTS = {
     GET: (id: string) => `/quizzes/${id}`,
     ATTEMPT: (id: string) => `/quizzes/${id}/attempt`,
     RESULTS: (id: string) => `/quizzes/${id}/results`,
+    MY_LATEST: (id: string) => `/quizzes/${id}/my-latest`,
   },
 
   // Certificates
@@ -128,6 +129,7 @@ export const API_ENDPOINTS = {
   // Upload
   UPLOAD: {
     THUMBNAIL: '/upload/thumbnail',
+    AVATAR: '/upload/avatar',
   },
 
   // Admin

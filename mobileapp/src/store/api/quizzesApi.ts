@@ -8,6 +8,15 @@ import type {
   QuizAttemptResponse,
 } from '@/types/api.types';
 
+export type QuizLatestAttempt = {
+  attempt: null | {
+    score: number;
+    isPassed: boolean;
+    submittedAt?: string;
+    timeSpent?: number;
+  };
+};
+
 export const quizzesApi = createApi({
   reducerPath: 'quizzesApi',
   baseQuery: axiosBaseQuery(),
@@ -42,6 +51,16 @@ export const quizzesApi = createApi({
       }),
       transformResponse: (response: ApiResponse<unknown>) => response.data,
     }),
+
+    /** GET /api/quizzes/:id/my-latest — lấy lần làm gần nhất để hiển thị điểm + nút làm lại */
+    getMyLatestAttempt: builder.query<QuizLatestAttempt, string>({
+      query: quizId => ({
+        url: API_ENDPOINTS.QUIZZES.MY_LATEST(quizId),
+        method: 'GET',
+      }),
+      transformResponse: (response: ApiResponse<QuizLatestAttempt>) =>
+        response.data ?? { attempt: null },
+    }),
   }),
 });
 
@@ -50,4 +69,5 @@ export const {
   useLazyGetQuizQuery,
   useSubmitAttemptMutation,
   useGetQuizResultsQuery,
+  useGetMyLatestAttemptQuery,
 } = quizzesApi;

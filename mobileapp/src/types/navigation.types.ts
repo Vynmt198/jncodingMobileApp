@@ -37,7 +37,7 @@ export type AppStackParamList = {
   [ROUTES.COURSE_LISTING]: { categoryId?: string; categoryName?: string } | undefined;
   [ROUTES.COURSE_DETAIL]: { courseId: string };
   [ROUTES.CATEGORY]: { categoryId?: string; categoryName?: string } | undefined;
-  [ROUTES.COURSE_PLAYER]: { courseId: string; lessonId?: string };
+  [ROUTES.COURSE_PLAYER]: { courseId: string; lessonId?: string; quizScore?: number; quizPassed?: boolean; quizId?: string };
   [ROUTES.PAYMENT]: { courseId: string; courseTitle: string; price: number };
   [ROUTES.PAYMENT_SUCCESS]: { courseId: string; orderId: string };
   [ROUTES.PAYMENT_HISTORY]: undefined;

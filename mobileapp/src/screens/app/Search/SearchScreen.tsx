@@ -156,8 +156,24 @@ export const SearchScreen = () => {
         <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.resultInstructor}>{item.instructorId?.fullName}</Text>
         <View style={styles.resultMeta}>
-          <Text style={styles.ratingText}>⭐ {item.averageRating}</Text>
-          <Text style={styles.priceText}>{item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}</Text>
+          <View style={styles.ratingContainer}>
+            {(() => {
+              const rating = Number(item.averageRating) || 0;
+              const filled = Math.max(0, Math.min(5, Math.floor(rating)));
+              return [1, 2, 3, 4, 5].map(i => (
+                <Ionicons
+                  key={i}
+                  name={i <= filled ? 'star' : 'star-outline'}
+                  size={12}
+                  color={i <= filled ? COLORS.primary : COLORS.gray600}
+                />
+              ));
+            })()}
+            <Text style={styles.ratingText}>{(Number(item.averageRating) || 0).toFixed(1)}</Text>
+          </View>
+          <Text style={styles.priceText} numberOfLines={1} ellipsizeMode="tail">
+            {item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -501,15 +517,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: SPACING[2],
   },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   ratingText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.secondaryDark,
+    color: COLORS.textSecondary,
     fontWeight: '800',
+    marginLeft: 4,
   },
   priceText: {
     ...TYPOGRAPHY.label,
     color: COLORS.primary,
     fontWeight: '900',
+    maxWidth: 110,
+    textAlign: 'right',
   },
   emptyState: {
     alignItems: 'center',

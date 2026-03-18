@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, StatusBar, Platform } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '@/store/hooks';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
@@ -25,6 +25,13 @@ export const HomeScreen = () => {
   useEffect(() => {
     fetchHomeData();
   }, []);
+
+  // Khi quay lại từ màn khác (vd CourseDetail sau khi đánh giá), refetch để cập nhật averageRating.
+  useFocusEffect(
+    useCallback(() => {
+      fetchHomeData();
+    }, [])
+  );
 
   const fetchHomeData = async () => {
     try {
@@ -80,17 +87,10 @@ export const HomeScreen = () => {
             <View style={styles.userTextContainer}>
               <View style={styles.nameRow}>
                 <Text style={styles.greetingText}>Chào, {user?.fullName || 'Học viên'}</Text>
-                <View style={styles.vipBadge}>
-                  <Text style={styles.vipText}>VIP</Text>
-                </View>
               </View>
               <Text style={styles.sloganText}>Khám phá khóa học cao cấp tiếp theo của bạn</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.notificationBtn}>
-            <Ionicons name="notifications-outline" size={24} color={COLORS.white} />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -212,7 +212,7 @@ export const HomeScreen = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Xu hướng hiện nay</Text>
           <TouchableOpacity onPress={() => navigation.navigate(ROUTES.COURSE_LISTING as any)}>
-            <Text style={styles.seeAllText}>Xem thị trường</Text>
+            <Text style={styles.seeAllText}>Xem tất cả</Text>
           </TouchableOpacity>
         </View>
         {trendingCourses.map((course: any) => (
@@ -232,17 +232,21 @@ export const HomeScreen = () => {
               </View>
               <View style={styles.courseMeta}>
                 <View style={styles.ratingContainer}>
-                  {[1, 2, 3, 4, 5].map(i => (
+                  {(() => {
+                    const rating = Number(course.averageRating) || 0;
+                    const filled = Math.max(0, Math.min(5, Math.floor(rating)));
+                    return [1, 2, 3, 4, 5].map(i => (
                     <Ionicons
                       key={i}
-                      name="star"
+                      name={i <= filled ? 'star' : 'star-outline'}
                       size={12}
-                      color={i <= Math.round(course.averageRating) ? COLORS.secondary : COLORS.gray300}
+                      color={i <= filled ? COLORS.primary : COLORS.gray600}
                     />
-                  ))}
-                  <Text style={styles.ratingText}>{course.averageRating}</Text>
+                    ));
+                  })()}
+                  <Text style={styles.ratingText}>{(Number(course.averageRating) || 0).toFixed(1)}</Text>
                 </View>
-                <Text style={styles.priceText}>
+                <Text style={styles.priceText} numberOfLines={1} ellipsizeMode="tail">
                   {course.price === 0 ? 'Miễn phí' : `${course.price?.toLocaleString('vi-VN')} ₫`}
                 </Text>
               </View>
@@ -308,41 +312,10 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '800',
   },
-  vipBadge: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: SPACING[2],
-  },
-  vipText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: COLORS.textInverse,
-  },
   sloganText: {
     ...TYPOGRAPHY.caption,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
-  },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primaryLight,
-    borderWidth: 1.5,
-    borderColor: COLORS.textInverse,
   },
   searchBar: {
     flexDirection: 'row',
@@ -554,5 +527,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.label,
     color: COLORS.primary,
     fontWeight: '800',
+    maxWidth: 110,
+    textAlign: 'right',
   },
 });

@@ -3,12 +3,12 @@ import {
   TouchableOpacity,
   Text,
   ActivityIndicator,
-  StyleSheet,
   TouchableOpacityProps,
   ViewStyle,
   TextStyle,
   StyleProp,
   Animated,
+  StyleSheet,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
@@ -129,13 +129,14 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
+      style={StyleSheet.flatten([style as any])}
       activeOpacity={1}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled || loading}
       {...props}
     >
-      <Animated.View style={[getContainerStyle(), style, { transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View style={[getContainerStyle(), { transform: [{ scale: scaleAnim }] }]}>
         {loading ? (
           <ActivityIndicator color={variant === 'primary' || variant === 'secondary' ? COLORS.white : COLORS.primary} />
         ) : (

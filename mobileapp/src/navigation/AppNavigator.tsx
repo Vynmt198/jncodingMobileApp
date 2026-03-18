@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StackActions } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { ROUTES } from '@/constants/routes';
 import { AppStackParamList, BottomTabParamList } from '@/types/navigation.types';
 import { COLORS } from '@/constants/theme';
@@ -42,16 +43,53 @@ const TabNavigator = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.gray400,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          marginBottom: 2,
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          const iconSize = size ?? 22;
+          const name = (() => {
+            switch (route.name) {
+              // Learner
+              case ROUTES.HOME:
+                return focused ? 'home' : 'home-outline';
+              case ROUTES.SEARCH:
+                return focused ? 'search' : 'search-outline';
+              case ROUTES.MY_COURSES:
+                return focused ? 'library' : 'library-outline';
+              case ROUTES.PROFILE:
+                return focused ? 'person' : 'person-outline';
+
+              // Instructor
+              case ROUTES.INSTRUCTOR_DASHBOARD:
+                return focused ? 'school' : 'school-outline';
+              case ROUTES.INSTRUCTOR_CREATE_COURSE:
+                return focused ? 'add-circle' : 'add-circle-outline';
+              case ROUTES.INSTRUCTOR_ANALYTICS:
+                return focused ? 'bar-chart' : 'bar-chart-outline';
+
+              // Admin
+              case ROUTES.ADMIN_DASHBOARD:
+                return focused ? 'speedometer' : 'speedometer-outline';
+
+              default:
+                return focused ? 'ellipse' : 'ellipse-outline';
+            }
+          })();
+          return <Ionicons name={name as any} size={iconSize} color={color} />;
+        },
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: COLORS.border,
           elevation: 0,
         },
-      }}
+      })}
     >
       {role === 'admin' ? (
         <>
@@ -96,9 +134,9 @@ const TabNavigator = () => {
             component={RoleDashboardScreen}
             options={{ title: 'Home' }}
           />
-          <Tab.Screen name={ROUTES.SEARCH} component={SearchScreen} />
-          <Tab.Screen name={ROUTES.MY_COURSES} component={MyCoursesScreen} />
-          <Tab.Screen name={ROUTES.PROFILE} component={ProfileScreen} />
+          <Tab.Screen name={ROUTES.SEARCH} component={SearchScreen} options={{ title: 'Search' }} />
+          <Tab.Screen name={ROUTES.MY_COURSES} component={MyCoursesScreen} options={{ title: 'MyCourses' }} />
+          <Tab.Screen name={ROUTES.PROFILE} component={ProfileScreen} options={{ title: 'Profile' }} />
         </>
       )}
     </Tab.Navigator>

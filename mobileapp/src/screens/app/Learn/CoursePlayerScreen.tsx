@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, createElement } from 'react';
+import React, { useState, useMemo, useEffect, createElement, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,16 +13,19 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { Button } from '@/components/ui';
 import { useGetCourseLearningQuery, useGetLessonContentQuery } from '@/store/api/coursesApi';
 import { useMarkCompleteMutation } from '@/store/api/progressApi';
+import { useGenerateMutation } from '@/store/api/certificateApi';
+import { useGetMyLatestAttemptQuery } from '@/store/api/quizzesApi';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
 import type { Lesson, Progress } from '@/types/api.types';
+import { WebView } from 'react-native-webview';
 
 type CoursePlayerRouteProp = RouteProp<AppStackParamList, typeof ROUTES.COURSE_PLAYER>;
 
@@ -37,15 +40,31 @@ export const CoursePlayerScreen = () => {
   const params = route?.params;
   const courseId = typeof params?.courseId === 'string' ? params.courseId : '';
   const paramLessonId = typeof params?.lessonId === 'string' ? params.lessonId : undefined;
+  const navQuizId = typeof (params as any)?.quizId === 'string' ? String((params as any).quizId) : undefined;
+  const navQuizScore = typeof (params as any)?.quizScore === 'number' ? (params as any).quizScore : undefined;
+  const navQuizPassed = typeof (params as any)?.quizPassed === 'boolean' ? (params as any).quizPassed : undefined;
   const [curriculumModalVisible, setCurriculumModalVisible] = useState(false);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [videoUrlToPlay, setVideoUrlToPlay] = useState<string | null>(null);
+  const [disableLatestAttemptQuery, setDisableLatestAttemptQuery] = useState(false);
+  const [latestAttemptLocal, setLatestAttemptLocal] = useState<null | { score: number; isPassed: boolean }>(null);
 
   const { data: learningData, isLoading: loadingLearning, error: learningError, refetch: refetchLearning } = useGetCourseLearningQuery(courseId, {
     skip: !courseId,
   });
 
+  // Khi quay lại màn từ Quiz (hoặc từ background), luôn refetch để cập nhật % hoàn thành.
+  useFocusEffect(
+    useCallback(() => {
+      if (courseId) refetchLearning();
+    }, [courseId, refetchLearning])
+  );
+
   const lessons = learningData?.lessons ?? [];
   const completionPercentage = learningData?.completionPercentage ?? 0;
   const progressList = learningData?.progress ?? [];
+  const [generateCertificate, { isLoading: generatingCertificate }] = useGenerateMutation();
+  const certificateTriggeredRef = useRef(false);
 
   const progressByLessonId = useMemo(() => {
     const map: Record<string, Progress> = {};
@@ -62,8 +81,73 @@ export const CoursePlayerScreen = () => {
     if (selectedLessonId == null && firstLessonId) setSelectedLessonId(firstLessonId);
   }, [firstLessonId, selectedLessonId]);
 
+  // Tự cấp chứng chỉ khi hoàn thành 100% (đặc biệt với khóa không có quiz nên không đi qua QuizResultScreen).
+  useEffect(() => {
+    if (!courseId) return;
+    if (certificateTriggeredRef.current) return;
+    if (completionPercentage < 100) return;
+    certificateTriggeredRef.current = true;
+
+    generateCertificate({ courseId })
+      .unwrap()
+      .catch(() => {
+        // Không spam alert: backend có thể trả lỗi điều kiện (vd cần pass quiz).
+        // User vẫn có thể bấm "Hoàn thành khóa học" ở màn QuizResult (nếu có) hoặc thử lại sau.
+      });
+  }, [courseId, completionPercentage, generateCertificate]);
+
   const currentLesson = lessons.find((l: Lesson) => l._id === selectedLessonId) ?? lessons[0];
   const currentIndex = currentLesson ? lessons.findIndex((l: Lesson) => l._id === currentLesson._id) : -1;
+
+  // NOTE: Hooks phải được gọi trước mọi return sớm.
+  const isQuiz = currentLesson?.type === 'quiz';
+  const isVideo = currentLesson?.type === 'video';
+  const isText = currentLesson?.type === 'text';
+  const currentQuizId = isQuiz ? String((currentLesson as any)?.quizId ?? '') : '';
+  const { data: latestAttemptData, error: latestAttemptError } = useGetMyLatestAttemptQuery(currentQuizId, {
+    skip: !currentQuizId || disableLatestAttemptQuery,
+    refetchOnMountOrArgChange: true,
+  });
+  const latestAttempt = latestAttemptData?.attempt ?? null;
+  const latestAttemptFallback =
+    !latestAttempt && navQuizId && currentQuizId && navQuizId === currentQuizId && navQuizScore != null && navQuizPassed != null
+      ? { score: navQuizScore, isPassed: navQuizPassed }
+      : null;
+  const latestAttemptEffective = latestAttempt ?? latestAttemptFallback ?? latestAttemptLocal;
+
+  // Nếu backend chưa có endpoint /my-latest (404) thì stop gọi để tránh spam log và không ảnh hưởng UX.
+  useEffect(() => {
+    const status = (latestAttemptError as any)?.status;
+    if (status === 404) setDisableLatestAttemptQuery(true);
+  }, [latestAttemptError]);
+
+  // Load local cached attempt (persisted from QuizQuestionScreen) when viewing a quiz lesson
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!currentQuizId) {
+        setLatestAttemptLocal(null);
+        return;
+      }
+      try {
+        const raw = await (await import('@react-native-async-storage/async-storage')).default.getItem(
+          `@quiz_latest_attempt_${currentQuizId}`
+        );
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (!cancelled && parsed && typeof parsed.score === 'number' && typeof parsed.isPassed === 'boolean') {
+          setLatestAttemptLocal({ score: parsed.score, isPassed: parsed.isPassed });
+        } else if (!cancelled) {
+          setLatestAttemptLocal(null);
+        }
+      } catch {
+        if (!cancelled) setLatestAttemptLocal(null);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentQuizId]);
 
   const { data: contentData, isLoading: loadingContent } = useGetLessonContentQuery(currentLesson?._id ?? '', {
     skip: !currentLesson?._id || currentLesson?.type === 'quiz',
@@ -98,10 +182,42 @@ export const CoursePlayerScreen = () => {
     if (currentIndex >= 0 && currentIndex < lessons.length - 1) setSelectedLessonId(lessons[currentIndex + 1]._id);
   };
 
+  const toYoutubeEmbedUrl = (url: string): string => {
+    try {
+      const u = new URL(url);
+      // youtu.be/<id>
+      if (u.hostname.includes('youtu.be')) {
+        const id = u.pathname.replace('/', '').trim();
+        return id ? `https://m.youtube.com/watch?v=${id}&playsinline=1` : url;
+      }
+      // youtube.com/watch?v=<id>
+      const v = u.searchParams.get('v');
+      if (v) return `https://m.youtube.com/watch?v=${v}&playsinline=1`;
+      // already embed -> convert to watch (tránh error 153 trên một số video)
+      if (u.pathname.includes('/embed/')) {
+        const parts = u.pathname.split('/embed/');
+        const id = (parts[1] ?? '').split('?')[0].trim();
+        return id ? `https://m.youtube.com/watch?v=${id}&playsinline=1` : url;
+      }
+      return url;
+    } catch {
+      return url;
+    }
+  };
+
   const openVideoUrl = () => {
-    const url = lessonContent?.videoUrl || (lessonContent as any)?.videoUrl;
-    if (url) Linking.openURL(url).catch(() => Alert.alert('Lỗi', 'Không thể mở video.'));
-    else Alert.alert('Thông báo', 'Chưa có link video cho bài này.');
+    const url = String(lessonContent?.videoUrl || (lessonContent as any)?.videoUrl || '');
+    if (!url) {
+      Alert.alert('Thông báo', 'Chưa có link video cho bài này.');
+      return;
+    }
+    // Ưu tiên mở ngay trong app nếu là YouTube link
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      setVideoUrlToPlay(toYoutubeEmbedUrl(url));
+      setVideoModalVisible(true);
+      return;
+    }
+    Linking.openURL(url).catch(() => Alert.alert('Lỗi', 'Không thể mở video.'));
   };
 
   const paddingTop = insets?.top ?? 0;
@@ -144,10 +260,6 @@ export const CoursePlayerScreen = () => {
     );
   }
 
-  const isQuiz = currentLesson?.type === 'quiz';
-  const isVideo = currentLesson?.type === 'video';
-  const isText = currentLesson?.type === 'text';
-
   const mainContent =
     loadingContent && (isVideo || isText) ? (
       <View style={styles.centeredMain}>
@@ -160,7 +272,22 @@ export const CoursePlayerScreen = () => {
       >
         <Ionicons name="help-buoy" size={64} color={COLORS.primary} />
         <Text style={styles.mainTitle}>{currentLesson?.title}</Text>
-        <Text style={styles.mainSubtitle}>BĂ i kiá»ƒm tra â€” lĂ m quiz Ä‘á»ƒ hoĂ n thĂ nh bĂ i há»c.</Text>
+        <Text style={styles.mainSubtitle}>Bài kiểm tra — làm quiz để hoàn thành bài học.</Text>
+        {latestAttemptEffective ? (
+          <View style={styles.quizInfoCard}>
+            <View style={styles.quizInfoRow}>
+              <Ionicons
+                name={latestAttemptEffective.isPassed ? 'checkmark-circle' : 'alert-circle'}
+                size={18}
+                color={latestAttemptEffective.isPassed ? COLORS.success : COLORS.warning}
+              />
+              <Text style={styles.quizInfoText}>
+                Điểm lần trước: <Text style={styles.quizInfoScore}>{Math.round(latestAttemptEffective.score)}%</Text>
+                {latestAttemptEffective.isPassed ? ' (Đạt)' : ' (Chưa đạt)'}
+              </Text>
+            </View>
+          </View>
+        ) : null}
         {Platform.OS === 'web' ? (
           createElement('button', {
             type: 'button',
@@ -188,7 +315,7 @@ export const CoursePlayerScreen = () => {
               position: 'relative',
               zIndex: 10,
             },
-            children: 'Làm quiz',
+            children: latestAttemptEffective ? 'Làm lại' : 'Làm quiz',
           })
         ) : (
           <View
@@ -196,9 +323,9 @@ export const CoursePlayerScreen = () => {
             onStartShouldSetResponder={() => true}
             onResponderRelease={handleOpenQuiz}
             accessibilityRole="button"
-            accessibilityLabel="Làm quiz"
+            accessibilityLabel={latestAttemptEffective ? 'Làm lại' : 'Làm quiz'}
           >
-            <Text style={styles.quizBtnText}>Làm quiz</Text>
+            <Text style={styles.quizBtnText}>{latestAttemptEffective ? 'Làm lại' : 'Làm quiz'}</Text>
           </View>
         )}
       </View>
@@ -209,7 +336,7 @@ export const CoursePlayerScreen = () => {
           <>
             <TouchableOpacity style={styles.videoPlaceholder} onPress={openVideoUrl}>
               <Ionicons name="play-circle" size={56} color={COLORS.white} />
-              <Text style={styles.videoPlaceholderText}>Nháº¥n Ä‘á»ƒ má»Ÿ video</Text>
+              <Text style={styles.videoPlaceholderText}>Nhấn để mở video</Text>
             </TouchableOpacity>
             <Text style={styles.hint}>Video mở trong trình duyệt hoặc app hỗ trợ.</Text>
           </>
@@ -341,15 +468,37 @@ export const CoursePlayerScreen = () => {
         <Text style={styles.footerIndex}>
           {currentIndex + 1} / {lessons.length}
         </Text>
-        <TouchableOpacity
-          style={[styles.navBtn, currentIndex >= lessons.length - 1 && styles.navBtnDisabled]}
-          onPress={goNext}
-          disabled={currentIndex >= lessons.length - 1}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Text style={[styles.navBtnText, currentIndex >= lessons.length - 1 && styles.navBtnTextDisabled]}>{isMobile ? 'Bài tiếp' : 'Tiếp'}</Text>
-          <Ionicons name="chevron-forward" size={22} color={currentIndex >= lessons.length - 1 ? COLORS.gray400 : COLORS.gray700} />
-        </TouchableOpacity>
+        {currentIndex >= lessons.length - 1 ? (
+          <TouchableOpacity
+            style={[styles.navBtn, generatingCertificate && styles.navBtnDisabled]}
+            onPress={async () => {
+              if (!courseId) return;
+              try {
+                // Idempotent: backend sẽ trả lại chứng chỉ đã cấp nếu có.
+                await generateCertificate({ courseId }).unwrap();
+              } catch {
+                // Nếu chưa đủ điều kiện (vd cần pass quiz) thì vẫn cho user vào Profile để xem trạng thái.
+              } finally {
+                // Profile nằm trong TabNavigator (nested dưới MainTabs)
+                navigation.navigate('MainTabs', { screen: ROUTES.PROFILE, params: { highlightCourseId: courseId } });
+              }
+            }}
+            disabled={generatingCertificate}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.navBtnText}>{generatingCertificate ? 'Đang cấp...' : 'Xem chứng chỉ'}</Text>
+            <Ionicons name="trophy-outline" size={20} color={COLORS.gray700} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={goNext}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.navBtnText}>{isMobile ? 'Bài tiếp' : 'Tiếp'}</Text>
+            <Ionicons name="chevron-forward" size={22} color={COLORS.gray700} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {curriculumModalVisible && (
@@ -374,6 +523,67 @@ export const CoursePlayerScreen = () => {
           </Pressable>
         </Modal>
       )}
+
+      {videoModalVisible && (
+        <Modal
+          visible
+          animationType="slide"
+          onRequestClose={() => {
+            setVideoModalVisible(false);
+            setVideoUrlToPlay(null);
+          }}
+        >
+          <View style={[styles.videoModalRoot, { paddingTop: insets.top }]}>
+            <View style={styles.videoModalHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setVideoModalVisible(false);
+                  setVideoUrlToPlay(null);
+                }}
+                style={styles.videoModalClose}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="close" size={26} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.videoModalTitle} numberOfLines={1}>
+                {currentLesson?.title ?? 'Video'}
+              </Text>
+              <View style={{ width: 40 }} />
+            </View>
+            {videoUrlToPlay ? (
+              <WebView
+                source={{ uri: videoUrlToPlay }}
+                style={styles.videoWebView}
+                allowsFullscreenVideo
+                mediaPlaybackRequiresUserAction={false}
+                javaScriptEnabled
+                domStorageEnabled
+                originWhitelist={['*']}
+                onError={() => {
+                  Alert.alert(
+                    'Không phát được video trong app',
+                    'Video này có thể chặn phát trong WebView. Bạn có muốn mở bằng YouTube không?',
+                    [
+                      { text: 'Hủy', style: 'cancel' },
+                      {
+                        text: 'Mở YouTube',
+                        onPress: () => {
+                          const original = String((lessonContent as any)?.videoUrl || '');
+                          if (original) Linking.openURL(original).catch(() => {});
+                        },
+                      },
+                    ]
+                  );
+                }}
+              />
+            ) : (
+              <View style={styles.centeredMain}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+              </View>
+            )}
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -382,7 +592,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   screenRoot: { backgroundColor: COLORS.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING[5], backgroundColor: COLORS.background },
-  errText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray700, textAlign: 'center' },
+  errText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textSecondary, textAlign: 'center' },
   link: { ...TYPOGRAPHY.bodyMedium, color: COLORS.primary, fontWeight: '600', marginTop: SPACING[2] },
   header: {
     flexDirection: 'row',
@@ -391,25 +601,25 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING[3],
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   backBtn: { padding: SPACING[2], marginRight: SPACING[2] },
   headerCenter: { flex: 1 },
-  courseTitle: { ...TYPOGRAPHY.label, color: COLORS.gray800, marginBottom: 4 },
-  progressBarBg: { height: 6, backgroundColor: COLORS.gray200, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
+  courseTitle: { ...TYPOGRAPHY.label, color: COLORS.textPrimary, marginBottom: 4 },
+  progressBarBg: { height: 6, backgroundColor: COLORS.surfaceSecondary, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
   progressBarFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 3 },
-  progressText: { ...TYPOGRAPHY.caption, color: COLORS.gray600 },
+  progressText: { ...TYPOGRAPHY.caption, color: COLORS.textSecondary },
   headerMenuBtn: { padding: SPACING[2], marginLeft: SPACING[1] },
   body: { flex: 1, flexDirection: 'row' },
   bodyMobile: { flexDirection: 'column' },
-  sidebar: { width: 280, borderRightWidth: 1, borderRightColor: COLORS.border, backgroundColor: COLORS.white },
+  sidebar: { width: 280, borderRightWidth: 1, borderRightColor: COLORS.border, backgroundColor: COLORS.background },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
     borderTopLeftRadius: BORDER_RADIUS.lg,
     borderTopRightRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING[4],
@@ -424,11 +634,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  modalTitle: { ...TYPOGRAPHY.h4, color: COLORS.gray900 },
+  modalTitle: { ...TYPOGRAPHY.h4, color: COLORS.textPrimary },
   modalCloseBtn: { padding: SPACING[2] },
   modalScroll: { maxHeight: 400 },
   sidebarContent: { padding: SPACING[4], paddingBottom: SPACING[8] },
-  sidebarTitle: { ...TYPOGRAPHY.label, color: COLORS.gray700, marginBottom: SPACING[3] },
+  sidebarTitle: { ...TYPOGRAPHY.label, color: COLORS.textSecondary, marginBottom: SPACING[3] },
   lessonRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -440,15 +650,15 @@ const styles = StyleSheet.create({
   },
   lessonRowActive: { backgroundColor: COLORS.primaryLight + '25' },
   lessonRowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: SPACING[2] },
-  lessonRowTitle: { ...TYPOGRAPHY.bodySmall, color: COLORS.gray800, flex: 1 },
+  lessonRowTitle: { ...TYPOGRAPHY.bodySmall, color: COLORS.textPrimary, flex: 1 },
   lessonRowTitleActive: { fontWeight: '600', color: COLORS.primary },
-  lessonRowType: { ...TYPOGRAPHY.caption, color: COLORS.gray500 },
+  lessonRowType: { ...TYPOGRAPHY.caption, color: COLORS.textSecondary },
   main: { flex: 1, backgroundColor: COLORS.background },
   mainWeb: Platform.select({ web: { position: 'relative' as const, zIndex: 1 }, default: {} }),
   centeredMain: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING[6] },
   centeredMainWeb: Platform.select({ web: { pointerEvents: 'box-none' as const }, default: {} }),
-  mainTitle: { ...TYPOGRAPHY.h4, color: COLORS.gray900, marginBottom: SPACING[3] },
-  mainSubtitle: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray600, marginBottom: SPACING[6], textAlign: 'center' },
+  mainTitle: { ...TYPOGRAPHY.h4, color: COLORS.textPrimary, marginBottom: SPACING[3] },
+  mainSubtitle: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textSecondary, marginBottom: SPACING[6], textAlign: 'center' },
   quizBtn: {
     minWidth: 160,
     minHeight: 48,
@@ -461,20 +671,37 @@ const styles = StyleSheet.create({
   },
   quizBtnWeb: Platform.select({ web: { cursor: 'pointer' as const }, default: {} }),
   quizBtnText: { ...TYPOGRAPHY.button, color: COLORS.white },
+  quizInfoCard: {
+    marginTop: SPACING[3],
+    marginBottom: SPACING[4],
+    paddingVertical: SPACING[3],
+    paddingHorizontal: SPACING[4],
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    width: '100%',
+    maxWidth: 360,
+  },
+  quizInfoRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING[2] },
+  quizInfoText: { ...TYPOGRAPHY.bodySmall, color: COLORS.textPrimary, flexShrink: 1 },
+  quizInfoScore: { fontWeight: '800', color: COLORS.primary },
   contentScroll: { flex: 1 },
   contentScrollInner: { padding: SPACING[5], paddingBottom: SPACING[8] },
   videoPlaceholder: {
-    backgroundColor: COLORS.gray800,
+    backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
     height: 200,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING[4],
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  videoPlaceholderText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.white, marginTop: SPACING[2] },
-  hint: { ...TYPOGRAPHY.caption, color: COLORS.gray600, marginBottom: SPACING[4] },
-  noContent: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray500, marginBottom: SPACING[4] },
-  textContent: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray800, lineHeight: 24, marginBottom: SPACING[6] },
+  videoPlaceholderText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textPrimary, marginTop: SPACING[2] },
+  hint: { ...TYPOGRAPHY.caption, color: COLORS.textSecondary, marginBottom: SPACING[4] },
+  noContent: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textSecondary, marginBottom: SPACING[4] },
+  textContent: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textPrimary, lineHeight: 24, marginBottom: SPACING[6] },
   completeBtn: {
     alignSelf: 'flex-start',
     backgroundColor: COLORS.primary,
@@ -494,11 +721,29 @@ const styles = StyleSheet.create({
     paddingTop: SPACING[3],
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: SPACING[3], paddingHorizontal: SPACING[4], minHeight: 44 },
   navBtnDisabled: { opacity: 0.6 },
-  navBtnText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray700 },
+  navBtnText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textSecondary },
   navBtnTextDisabled: { color: COLORS.gray400 },
   footerIndex: { ...TYPOGRAPHY.caption, color: COLORS.gray600 },
+
+  videoModalRoot: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  videoModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  videoModalClose: { padding: SPACING[2] },
+  videoModalTitle: { ...TYPOGRAPHY.label, color: COLORS.textPrimary, flex: 1, textAlign: 'center' },
+  videoWebView: { flex: 1, backgroundColor: COLORS.background },
 });

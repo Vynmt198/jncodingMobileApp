@@ -16,7 +16,7 @@ import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { Button } from '@/components/ui';
 import { useGetQuizResultsQuery } from '@/store/api/quizzesApi';
 import { useGetCourseLearningQuery } from '@/store/api/coursesApi';
-import axiosInstance from '@/api/axiosInstance';
+import { useGenerateMutation } from '@/store/api/certificateApi';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
 
@@ -44,7 +44,7 @@ export const QuizResultScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<QuizResultNavProp>();
   const route = useRoute<QuizResultRouteProp>();
-  const { attemptId, quizId, courseId } = route.params ?? { attemptId: '' };
+  const { attemptId, quizId, courseId, lessonId } = route.params ?? { attemptId: '' };
 
   const { data: attemptData, isLoading, error } = useGetQuizResultsQuery(attemptId, {
     skip: !attemptId,
@@ -55,6 +55,7 @@ export const QuizResultScreen = () => {
   });
   const completionPercentage = learningData?.completionPercentage ?? 0;
   const allCompleted = completionPercentage >= 100;
+  const [generateCertificate, { isLoading: generatingCertificate }] = useGenerateMutation();
 
   const attempt = (attemptData as AttemptData) ?? null;
   const score = attempt?.score ?? 0;
@@ -71,11 +72,18 @@ export const QuizResultScreen = () => {
   };
 
   const handleBackToCourse = () => {
-    if (courseId) {
-      navigation.navigate(ROUTES.COURSE_DETAIL, { courseId });
-    } else {
+    if (!courseId) {
       navigation.getParent()?.goBack();
+      return;
     }
+    // Replace để tránh tạo vòng lặp (không push thêm screen mới).
+    navigation.replace(ROUTES.COURSE_PLAYER, {
+      courseId,
+      lessonId,
+      quizScore: score,
+      quizPassed: isPassed,
+      quizId,
+    });
   };
 
   const handleCompleteCourse = async () => {
@@ -85,14 +93,15 @@ export const QuizResultScreen = () => {
     }
 
     try {
-      await axiosInstance.post('/certificates/generate', { courseId });
+      await generateCertificate({ courseId }).unwrap();
       Alert.alert(
         'Chúc mừng!',
         'Bạn đã hoàn thành khóa học và (nếu đủ điều kiện) chứng chỉ đã được cấp. Vào Hồ sơ → Chứng chỉ của bạn để xem.',
         [
           {
-            text: 'Xem khóa học',
-            onPress: () => navigation.navigate(ROUTES.COURSE_DETAIL, { courseId }),
+            text: 'Xem chứng chỉ',
+            // Profile nằm trong TabNavigator (nested dưới MainTabs)
+            onPress: () => navigation.navigate('MainTabs' as any, { screen: ROUTES.PROFILE, params: { highlightCourseId: courseId } } as any),
           },
         ]
       );
@@ -186,9 +195,16 @@ export const QuizResultScreen = () => {
       {allCompleted && courseId && (
         <View style={styles.completeCourseWrap}>
           <Text style={styles.completeCourseLabel}>Bạn đã hoàn thành khóa học!</Text>
-          <TouchableOpacity style={styles.completeCourseBtn} onPress={handleCompleteCourse} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.completeCourseBtn}
+            onPress={handleCompleteCourse}
+            activeOpacity={0.8}
+            disabled={generatingCertificate}
+          >
             <Ionicons name="trophy" size={16} color={COLORS.white} />
-            <Text style={styles.completeCourseBtnText}>Hoàn thành khóa học</Text>
+            <Text style={styles.completeCourseBtnText}>
+              {generatingCertificate ? 'Đang cấp chứng chỉ...' : 'Hoàn thành khóa học'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
