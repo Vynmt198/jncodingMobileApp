@@ -131,40 +131,25 @@ export const ProfileScreen = () => {
     try {
       const uploadAvatarAndGetUrl = async (asset: ImagePicker.ImagePickerAsset): Promise<string> => {
         const localUri = asset.uri;
-        const filename = asset.fileName || 'avatar.jpg';
+        const inferredNameFromUri = (() => {
+          const last = (localUri || '').split('/').pop() || '';
+          // content:// URIs thường không có extension; giữ default cho ổn định
+          return last && last.includes('.') ? last : 'avatar.jpg';
+        })();
+        const filename = asset.fileName || inferredNameFromUri;
         const mimeType = (asset.mimeType as string | undefined) || 'image/jpeg';
 
         const formData = new FormData();
         // Backend expects field name "avatar"
-        // Lưu ý: Android thường trả URI dạng content://; append kiểu {uri,name,type} đôi khi gây "Network request failed".
-        // Fallback sang Blob để upload ổn định hơn.
-        if (localUri.startsWith('content://')) {
-          const blob = await (await fetch(localUri)).blob();
-          formData.append('avatar', blob as any, filename);
-        } else {
-          formData.append('avatar', {
-            uri: localUri,
-            name: filename,
-            type: mimeType,
-          } as any);
-        }
+        formData.append('avatar', { uri: localUri, name: filename, type: mimeType } as any);
 
-        // Dùng fetch thay vì axios để tránh "Network Error" khi upload multipart (content://) trên Android.
-        const token = await getSecureItem(TOKEN_KEY);
-        const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.UPLOAD.AVATAR}`, {
-          method: 'POST',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            Accept: 'application/json',
-          },
-          body: formData,
+        // Dùng axiosInstance để đảm bảo interceptor gắn token + log được request lỗi.
+        // Lưu ý: không set boundary thủ công; chỉ khai báo multipart/form-data.
+        const response = await axiosInstance.post(API_ENDPOINTS.UPLOAD.AVATAR, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          const msg = (json as any)?.message || `Upload failed (${res.status})`;
-          throw new Error(msg);
-        }
-        const url = (json as any)?.data?.url || (json as any)?.url;
+        const json = (response as any)?.data;
+        const url = json?.data?.url || json?.url;
         if (!url) throw new Error('Không lấy được URL ảnh từ server');
         return String(url);
       };
