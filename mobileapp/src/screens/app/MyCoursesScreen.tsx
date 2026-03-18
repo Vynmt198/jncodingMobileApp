@@ -33,6 +33,7 @@ export const MyCoursesScreen = () => {
   const token = useAppSelector(s => s.auth.token);
   const { data, isLoading, isError, refetch, isFetching } = useGetMyEnrollmentsQuery(undefined, {
     skip: !token,
+    refetchOnMountOrArgChange: true,
   });
   const [filter, setFilter] = useState<FilterType>('all');
 

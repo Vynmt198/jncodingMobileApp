@@ -12,7 +12,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, SHADOW } from '@/constants/theme';
 import { ROUTES } from '@/constants/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,6 +55,13 @@ export const CourseListingScreen = () => {
   useEffect(() => {
     fetchCourses(1, true);
   }, [sortBy, selectedLevel, categoryId]);
+
+  // Khi quay lại từ màn chi tiết (đánh giá/đăng ký), refetch để đồng bộ rating/giá.
+  useFocusEffect(
+    useCallback(() => {
+      fetchCourses(1, true);
+    }, [sortBy, selectedLevel, categoryId])
+  );
 
   const fetchCourses = async (pageNum: number, shouldReset = false) => {
     try {
@@ -124,10 +131,23 @@ export const CourseListingScreen = () => {
           <Image source={{ uri: item.thumbnail || 'https://placehold.co/150x120?text=Course' }} style={styles.gridImage} />
           <View style={styles.gridInfo}>
             <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.gridPrice}>{item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}</Text>
+            <Text style={styles.gridPrice} numberOfLines={1} ellipsizeMode="tail">
+              {item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}
+            </Text>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={12} color={COLORS.primary} />
-              <Text style={styles.ratingText}>{item.averageRating}</Text>
+              {(() => {
+                const rating = Number(item.averageRating) || 0;
+                const filled = Math.max(0, Math.min(5, Math.floor(rating)));
+                return [1, 2, 3, 4, 5].map(i => (
+                  <Ionicons
+                    key={i}
+                    name={i <= filled ? 'star' : 'star-outline'}
+                    size={12}
+                    color={i <= filled ? COLORS.primary : COLORS.gray600}
+                  />
+                ));
+              })()}
+              <Text style={styles.ratingText}>{(Number(item.averageRating) || 0).toFixed(1)}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -145,10 +165,23 @@ export const CourseListingScreen = () => {
           <Text style={styles.listInstructor}>{item.instructorId?.fullName}</Text>
           <View style={styles.listBottom}>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color={COLORS.primary} />
-              <Text style={styles.ratingText}>{item.averageRating}</Text>
+              {(() => {
+                const rating = Number(item.averageRating) || 0;
+                const filled = Math.max(0, Math.min(5, Math.floor(rating)));
+                return [1, 2, 3, 4, 5].map(i => (
+                  <Ionicons
+                    key={i}
+                    name={i <= filled ? 'star' : 'star-outline'}
+                    size={12}
+                    color={i <= filled ? COLORS.primary : COLORS.gray600}
+                  />
+                ));
+              })()}
+              <Text style={styles.ratingText}>{(Number(item.averageRating) || 0).toFixed(1)}</Text>
             </View>
-            <Text style={styles.listPrice}>{item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}</Text>
+            <Text style={styles.listPrice} numberOfLines={1} ellipsizeMode="tail">
+              {item.price === 0 ? 'Miễn phí' : `${item.price?.toLocaleString('vi-VN')} ₫`}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -407,6 +440,8 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.label,
     color: COLORS.primary,
     fontWeight: '800',
+    maxWidth: 110,
+    textAlign: 'right',
   },
   ratingRow: {
     flexDirection: 'row',
@@ -447,6 +482,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '800',
     marginTop: 4,
+    maxWidth: '100%',
   },
   emptyContainer: {
     paddingVertical: 100,

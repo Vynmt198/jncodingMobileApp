@@ -302,6 +302,26 @@ exports.getPaymentHistory = async (req, res, next) => {
             .skip((page - 1) * limit)
             .select('-vnpayData');
 
+        // Auto-expire old pending payments (VNPay chưa callback hoặc user đóng browser)
+        // Nếu "pending" quá lâu thì chuyển sang "cancelled" để UI không bị kẹt "Chờ xử lý".
+        const PENDING_EXPIRE_MS = 30 * 60 * 1000; // 30 phút
+        const now = Date.now();
+        const expiredIds = payments
+            .filter((p) => p.paymentStatus === 'pending' && p.createdAt && (now - new Date(p.createdAt).getTime()) > PENDING_EXPIRE_MS)
+            .map((p) => p._id);
+
+        if (expiredIds.length > 0) {
+            await Payment.updateMany(
+                { _id: { $in: expiredIds }, paymentStatus: 'pending' },
+                { $set: { paymentStatus: 'cancelled' } }
+            );
+            payments.forEach((p) => {
+                if (expiredIds.some((id) => id.toString() === p._id.toString())) {
+                    p.paymentStatus = 'cancelled';
+                }
+            });
+        }
+
         const count = await Payment.countDocuments(query);
 
         res.status(200).json({

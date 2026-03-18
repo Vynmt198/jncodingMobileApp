@@ -183,18 +183,32 @@ export const CourseDetailScreen = () => {
 
   const handleDeleteReview = async () => {
     if (!myReview || !courseId) return;
-    try {
-      await axiosInstance.delete(`/reviews/${myReview._id}`);
-      setReviews(prev => prev.filter(r => r._id !== myReview._id));
-      setRating(0);
-      setComment('');
-      setMyReview(null);
-      setEditing(false);
-      Alert.alert('Thành công', 'Đã xóa đánh giá.');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'Không xóa được đánh giá.';
-      Alert.alert('Lỗi', msg);
-    }
+    Alert.alert(
+      'Xóa đánh giá',
+      'Bạn có chắc chắn muốn xóa đánh giá này không?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axiosInstance.delete(`/reviews/${myReview._id}`);
+              setReviews(prev => prev.filter(r => r._id !== myReview._id));
+              setRating(0);
+              setComment('');
+              setMyReview(null);
+              setEditing(false);
+              Alert.alert('Thành công', 'Đã xóa đánh giá.');
+            } catch (err: any) {
+              const msg = err?.response?.data?.message ?? 'Không xóa được đánh giá.';
+              Alert.alert('Lỗi', msg);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleEnrollPress = async () => {
@@ -419,14 +433,17 @@ export const CourseDetailScreen = () => {
       <View style={styles.ratingSummary}>
          <Text style={styles.ratingBig}>{averageRating}</Text>
          <View style={styles.ratingStars}>
-            {[1,2,3,4,5].map(i => (
+            {(() => {
+              const filled = Math.max(0, Math.min(5, Math.floor(Number(averageRating) || 0)));
+              return [1, 2, 3, 4, 5].map(i => (
               <Ionicons 
                 key={i} 
-                name="star" 
+                name={i <= filled ? 'star' : 'star-outline'} 
                 size={24} 
-                color={i <= Math.round(averageRating) ? COLORS.secondary : COLORS.gray200} 
+                color={i <= filled ? COLORS.primary : COLORS.gray600} 
               />
-            ))}
+              ));
+            })()}
          </View>
          <Text style={styles.totalReviews}>Dựa trên {reviewsCount} đánh giá</Text>
          {myReview && (
@@ -453,9 +470,9 @@ export const CourseDetailScreen = () => {
                 style={{ marginRight: 4 }}
               >
                 <Ionicons
-                  name="star"
+                  name={star <= rating ? 'star' : 'star-outline'}
                   size={24}
-                  color={star <= rating ? COLORS.secondary : COLORS.gray200}
+                  color={star <= rating ? COLORS.primary : COLORS.gray600}
                 />
               </TouchableOpacity>
             ))}
@@ -560,8 +577,8 @@ export const CourseDetailScreen = () => {
                <Text style={styles.title}>{course.title}</Text>
                <View style={styles.metaRow}>
                   <View style={styles.metaItem}>
-                     <Ionicons name="star" size={16} color={COLORS.secondary} />
-                     <Text style={styles.metaText}>{course.averageRating}</Text>
+                     <Ionicons name="star" size={16} color={COLORS.primary} />
+                     <Text style={styles.metaText}>{averageRating}</Text>
                   </View>
                   <View style={styles.metaItem}>
                      <Ionicons name="people" size={16} color={COLORS.white} />
@@ -604,9 +621,15 @@ export const CourseDetailScreen = () => {
       {/* Sticky Footer */}
       {!hidePurchaseFooter ? (
         <View style={styles.footer}>
-          <View>
+          <View style={styles.footerLeft}>
             <Text style={styles.footerPriceLabel}>Tổng giá</Text>
-            <Text style={styles.footerPrice}>{price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')} ₫`}</Text>
+            <Text
+              style={styles.footerPrice}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')} ₫`}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.enrollBtn}
@@ -623,7 +646,13 @@ export const CourseDetailScreen = () => {
               {enrolling ? (
                 <ActivityIndicator size="small" color={COLORS.primaryDark} />
               ) : (
-                <Text style={styles.enrollText}>
+                <Text
+                  style={styles.enrollText}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                >
                   {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
                 </Text>
               )}
@@ -969,6 +998,11 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     ...SHADOW.md,
   },
+  footerLeft: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: SPACING[3],
+  },
   footerPriceLabel: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
@@ -979,13 +1013,16 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h4,
     color: COLORS.primary,
     fontWeight: '900',
+    flexShrink: 1,
   },
   enrollBtn: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
     marginLeft: SPACING[8],
     height: 56,
     borderRadius: 16,
     overflow: 'hidden',
+    minWidth: 160,
   },
   enrollGradient: {
     flex: 1,

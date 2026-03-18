@@ -114,7 +114,12 @@ exports.submitAttempt = async (req, res, next) => {
         });
 
         const scorePercentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
-        const isPassed = scorePercentage >= quiz.passingScore;
+        // Safety: nếu passingScore bị cấu hình sai (0/NaN/<1) thì fallback 80 để tránh PASS sai.
+        const passingScore =
+            typeof quiz.passingScore === 'number' && Number.isFinite(quiz.passingScore) && quiz.passingScore >= 1
+                ? quiz.passingScore
+                : 80;
+        const isPassed = scorePercentage >= passingScore;
 
         const attempt = await QuizAttempt.create({
             userId: req.user._id,
@@ -173,6 +178,28 @@ exports.getQuizResults = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: attempt
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @route GET /api/quizzes/:id/my-latest
+ * @desc Get my latest attempt for a quiz (for showing previous score & retry)
+ */
+exports.getMyLatestAttempt = async (req, res, next) => {
+    try {
+        const quizId = req.params.id;
+        const userId = req.user._id;
+
+        const attempt = await QuizAttempt.findOne({ userId, quizId })
+            .sort({ submittedAt: -1, createdAt: -1 })
+            .select('score isPassed submittedAt timeSpent');
+
+        return res.status(200).json({
+            success: true,
+            data: { attempt: attempt || null },
         });
     } catch (error) {
         next(error);

@@ -6,6 +6,7 @@ import type { ApiResponse, Certificate } from '@/types/api.types';
 export const certificateApi = createApi({
   reducerPath: 'certificateApi',
   baseQuery: axiosBaseQuery(),
+  tagTypes: ['Certificates'],
   endpoints: builder => ({
     /** GET /api/certificates/my-certificates */
     getMyCertificates: builder.query<Certificate[], void>({
@@ -15,6 +16,7 @@ export const certificateApi = createApi({
       }),
       transformResponse: (response: ApiResponse<{ certificates: Certificate[] }>) =>
         response.data?.certificates ?? [],
+      providesTags: ['Certificates'],
     }),
 
     /** POST /api/certificates/generate — tạo chứng chỉ khi đủ điều kiện */
@@ -25,6 +27,7 @@ export const certificateApi = createApi({
         data: body,
       }),
       transformResponse: (response: ApiResponse<{ certificate: Certificate }>) => response.data!.certificate,
+      invalidatesTags: ['Certificates'],
     }),
 
     /** GET /api/certificates/:id/download — PDF hoặc URL (backend trả về theo cấu hình) */
@@ -41,6 +44,6 @@ export const certificateApi = createApi({
 export const {
   useGetMyCertificatesQuery,
   useLazyGetMyCertificatesQuery,
-  useGenerateCertificateMutation,
+  useGenerateMutation,
   useLazyDownloadQuery,
 } = certificateApi;

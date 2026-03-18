@@ -18,6 +18,7 @@ import { useGetQuizQuery, useSubmitAttemptMutation } from '@/store/api/quizzesAp
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
 import type { QuizQuestion } from '@/types/api.types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type QuizQuestionRouteProp = RouteProp<AppStackParamList, typeof ROUTES.QUIZ_QUESTION>;
 type QuizQuestionNavProp = NativeStackNavigationProp<AppStackParamList, typeof ROUTES.QUIZ_QUESTION>;
@@ -50,6 +51,15 @@ export const QuizQuestionScreen = () => {
         quizId,
         body: { answers: answersPayload, timeSpent },
       }).unwrap();
+      // Lưu cache "lần làm gần nhất" để CoursePlayer hiển thị ngay cả khi backend /my-latest chưa hoạt động.
+      const score = (result as any)?.score;
+      const isPassed = (result as any)?.isPassed;
+      if (typeof score === 'number' && typeof isPassed === 'boolean') {
+        await AsyncStorage.setItem(
+          `@quiz_latest_attempt_${quizId}`,
+          JSON.stringify({ score, isPassed, submittedAt: new Date().toISOString() })
+        );
+      }
       const attemptId = (result as { attemptId?: string })?.attemptId ?? (result as { _id?: string })?._id;
       if (attemptId) {
         navigation.replace(ROUTES.QUIZ_RESULT, { attemptId, quizId, courseId, lessonId });
@@ -239,7 +249,7 @@ export const QuizQuestionScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING[5] },
-  errorText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray700, marginBottom: SPACING[2] },
+  errorText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textSecondary, marginBottom: SPACING[2] },
   link: { ...TYPOGRAPHY.bodyMedium, color: COLORS.primary, fontWeight: '600' },
   header: {
     flexDirection: 'row',
@@ -249,42 +259,43 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING[3],
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background,
   },
   headerBack: { padding: SPACING[2] },
-  progress: { ...TYPOGRAPHY.label, color: COLORS.gray800 },
+  progress: { ...TYPOGRAPHY.label, color: COLORS.textPrimary },
   headerRight: { width: 40 },
-  bar: { height: 4, backgroundColor: COLORS.gray200 },
+  bar: { height: 4, backgroundColor: COLORS.surfaceSecondary },
   barFill: { height: '100%', backgroundColor: COLORS.primary },
   scroll: { flex: 1 },
   scrollContent: { padding: SPACING[5] },
-  questionType: { ...TYPOGRAPHY.caption, color: COLORS.primary, marginBottom: SPACING[2], textTransform: 'uppercase' },
-  questionText: { ...TYPOGRAPHY.h3, color: COLORS.gray900, marginBottom: SPACING[4], lineHeight: 26 } as any,
-  codeBlock: { backgroundColor: COLORS.gray100, borderRadius: BORDER_RADIUS.md, padding: SPACING[3], marginBottom: SPACING[4] },
-  codeText: { ...TYPOGRAPHY.bodySmall, fontFamily: 'monospace', color: COLORS.gray800 },
+  questionType: { ...TYPOGRAPHY.caption, color: COLORS.primaryLight, marginBottom: SPACING[2], textTransform: 'uppercase' },
+  questionText: { ...TYPOGRAPHY.h3, color: COLORS.textPrimary, marginBottom: SPACING[4], lineHeight: 26 } as any,
+  codeBlock: { backgroundColor: COLORS.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING[4], marginBottom: SPACING[4], borderWidth: 1, borderColor: COLORS.border },
+  codeText: { ...TYPOGRAPHY.bodySmall, fontFamily: 'monospace', color: COLORS.textPrimary },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING[4],
     marginBottom: SPACING[3],
     borderWidth: 2,
     borderColor: COLORS.border,
   },
-  optionSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight + '15' },
+  optionSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.infoLight },
   optionRadio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: COLORS.gray400,
+    borderColor: COLORS.textSecondary,
     marginRight: SPACING[3],
     justifyContent: 'center',
     alignItems: 'center',
   },
   optionRadioSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  optionText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.gray800, flex: 1 },
-  optionTextSelected: { color: COLORS.gray900, fontWeight: '600' },
+  optionText: { ...TYPOGRAPHY.bodyMedium, color: COLORS.textPrimary, flex: 1 },
+  optionTextSelected: { color: COLORS.textPrimary, fontWeight: '700' },
   tfRow: { flexDirection: 'row', gap: SPACING[4], marginTop: SPACING[2] },
   tfBtn: {
     flex: 1,
@@ -296,9 +307,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.border,
     gap: SPACING[2],
+    backgroundColor: COLORS.surface,
   },
-  tfBtnSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight + '15' },
-  tfLabel: { ...TYPOGRAPHY.label, color: COLORS.gray800 },
+  tfBtnSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.infoLight },
+  tfLabel: { ...TYPOGRAPHY.label, color: COLORS.textPrimary },
   footer: {
     paddingHorizontal: SPACING[5],
     paddingTop: SPACING[4],
@@ -309,5 +321,5 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACING[4] },
   navBtn: { flex: 1 },
   navBtnPrimary: {},
-  navBtnSecondary: { backgroundColor: COLORS.gray300 } as any,
+  navBtnSecondary: { backgroundColor: COLORS.secondary } as any,
 });

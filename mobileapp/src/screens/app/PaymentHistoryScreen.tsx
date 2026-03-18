@@ -26,7 +26,7 @@ const STATUS_COLOR: Record<PaymentStatus, string> = {
   success: COLORS.success,
   pending: COLORS.warning,
   failed: COLORS.error,
-  cancelled: COLORS.gray500,
+  cancelled: COLORS.error,
 };
 
 function formatDate(iso: string): string {
@@ -72,7 +72,11 @@ export const PaymentHistoryScreen = () => {
             #{item.orderId}
           </Text>
           <View style={[styles.badge, { backgroundColor: STATUS_COLOR[status] + '20' }]}>
-            <Text style={[styles.badgeText, { color: STATUS_COLOR[status] }]}>
+            <Text
+              style={[styles.badgeText, { color: STATUS_COLOR[status] }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {STATUS_LABEL[status]}
             </Text>
           </View>
@@ -213,6 +217,10 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: SPACING[2],
     borderRadius: BORDER_RADIUS.sm,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   badgeText: {
     ...TYPOGRAPHY.caption,
