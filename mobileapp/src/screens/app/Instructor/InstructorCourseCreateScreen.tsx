@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Input, Button, Select } from '@/components/ui';
 import {
@@ -469,7 +470,18 @@ export const InstructorCourseCreateScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEditing ? 'Chỉnh sửa khóa học' : 'Tạo khóa học mới'}</Text>
+      <View style={styles.headerRow}>
+        {isEditing && (
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.title}>{isEditing ? 'Chỉnh sửa khóa học' : 'Tạo khóa học mới'}</Text>
+      </View>
       <Text style={styles.subtitle}>
         {isEditing
           ? 'Cập nhật thông tin khóa học và quản lý curriculum.'
@@ -696,8 +708,8 @@ export const InstructorCourseCreateScreen: React.FC = () => {
                             {lesson.type === 'video'
                               ? '📹 video'
                               : lesson.type === 'text'
-                              ? '📄 text'
-                              : '❓ quiz'}
+                                ? '📄 text'
+                                : '❓ quiz'}
                           </Text>
                         </View>
                         <View style={styles.lessonActions}>
@@ -1036,6 +1048,22 @@ const styles = StyleSheet.create({
     paddingTop: SPACING[8],
     paddingBottom: SPACING[8],
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING[2],
+    gap: SPACING[3],
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     ...TYPOGRAPHY.h3,
     color: COLORS.textPrimary,
@@ -1088,7 +1116,7 @@ const styles = StyleSheet.create({
   },
   thumbnailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     marginBottom: SPACING[4],
   },
   thumbnailPreview: {

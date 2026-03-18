@@ -7,6 +7,7 @@
     "dev": "nodemon --watch src --watch .env src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:seed": "node scripts/db/seed.js",
+    "db:seed-full": "node scripts/db/seed-full.js",
     "db:init-indexes": "node scripts/db/init-indexes.js",
     "db:reset": "node scripts/db/reset.js",
     "db:reset-seed": "node scripts/db/reset-and-seed.js"
