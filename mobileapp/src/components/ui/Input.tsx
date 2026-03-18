@@ -7,6 +7,7 @@ import {
   TextInputProps,
   TouchableOpacity,
   ViewStyle,
+  Platform,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOW } from '@/constants/theme';
 
@@ -29,6 +30,7 @@ export const Input: React.FC<InputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const isMultiline = !!props.multiline;
 
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -42,6 +44,7 @@ export const Input: React.FC<InputProps> = ({
         collapsable={false}
         style={[
           styles.inputContainer,
+          isMultiline && styles.inputContainerMultiline,
           isFocused && styles.inputFocused,
           error && styles.inputError,
         ]}
@@ -49,11 +52,13 @@ export const Input: React.FC<InputProps> = ({
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
         
         <TextInput
-          style={styles.input}
-          placeholderTextColor={COLORS.gray400}
+          style={[styles.input, isMultiline && styles.inputMultiline]}
+          placeholderTextColor={COLORS.gray100}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
+          scrollEnabled={isMultiline}
+          textAlignVertical={isMultiline ? 'top' : 'center'}
           {...props}
         />
 
@@ -94,6 +99,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING[3],
     height: 48,
   },
+  inputContainerMultiline: {
+    alignItems: 'flex-start',
+    height: 'auto',
+    minHeight: 96,
+    paddingVertical: SPACING[3],
+  },
   inputFocused: {
     borderColor: COLORS.borderFocus,
     backgroundColor: COLORS.surfaceSecondary,
@@ -114,6 +125,10 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     // @ts-ignore - Web outline removal
     outlineStyle: 'none' as any,
+  },
+  inputMultiline: {
+    height: 'auto',
+    paddingTop: Platform.OS === 'android' ? 0 : undefined,
   },
   errorText: {
     ...TYPOGRAPHY.caption,

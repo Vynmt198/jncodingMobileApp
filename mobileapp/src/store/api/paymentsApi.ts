@@ -17,6 +17,8 @@ export interface GetPaymentHistoryParams {
 export interface CreatePaymentParams {
   courseId: string;
   amount: number;
+  /** Override VNPay return URL for mobile/emulator (avoid localhost in emulator browser). */
+  returnUrl?: string;
 }
 
 export interface CreatePaymentResponse {

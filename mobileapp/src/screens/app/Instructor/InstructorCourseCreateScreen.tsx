@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Input, Button, Select } from '@/components/ui';
 import axiosInstance from '@/api/axiosInstance';
@@ -27,7 +28,13 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ROUTES } from '@/constants/routes';
 import * as ImagePicker from 'expo-image-picker';
-import { useUpdateCourseMutation } from '@/store/api/instructorApi';
+import {
+  useCreateOrUpdateQuizMutation,
+  useLazyGetQuizByLessonIdQuery,
+  useUpdateCourseMutation,
+} from '@/store/api/instructorApi';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 
 type Category = {
   _id: string;
@@ -46,6 +53,8 @@ export const InstructorCourseCreateScreen: React.FC = () => {
   const [deleteLesson] = useDeleteLessonMutation();
   const [reorderLessons] = useReorderLessonsMutation();
   const [updateCourse, { isLoading: updatingCourse }] = useUpdateCourseMutation();
+  const [createOrUpdateQuiz, { isLoading: savingQuiz }] = useCreateOrUpdateQuizMutation();
+  const [triggerGetQuizByLesson] = useLazyGetQuizByLessonIdQuery();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
@@ -62,6 +71,25 @@ export const InstructorCourseCreateScreen: React.FC = () => {
     content: '',
   });
 
+  type QuizFormQuestion = {
+    questionText: string;
+    questionCode: string;
+    options: string[]; // length 4
+    correctIndex: number; // 0..3
+  };
+
+  const [quizModalLessonId, setQuizModalLessonId] = useState<string | null>(null);
+  const [loadingQuiz, setLoadingQuiz] = useState(false);
+  const [quizForm, setQuizForm] = useState<{
+    title: string;
+    passingScore: number;
+    questions: QuizFormQuestion[];
+  }>({
+    title: 'Quiz',
+    passingScore: 80,
+    questions: [],
+  });
+
   const {
     data: editingCourse,
     isLoading: loadingEditingCourse,
@@ -70,7 +98,7 @@ export const InstructorCourseCreateScreen: React.FC = () => {
   });
 
   const {
-    data: createdCurriculum = [],
+    data: createdCurriculum,
     refetch: refetchCurriculum,
   } = useGetCurriculumQuery(createdCourseId ?? '', {
     skip: !createdCourseId,
@@ -91,12 +119,46 @@ export const InstructorCourseCreateScreen: React.FC = () => {
   useEffect(() => {
     if (editingCourseId) {
       setCreatedCourseId(editingCourseId);
+    } else {
+      setCreatedCourseId(null);
+      setCurriculum([]);
+      setForm({
+        title: '',
+        description: '',
+        syllabus: '',
+        categoryId: '',
+        level: 'beginner',
+        price: '0',
+        thumbnail: '',
+        estimatedCompletionHours: '0',
+      });
+      setEditingLessonId(null);
+      setLessonForm({
+        title: '',
+        type: 'video',
+        videoUrl: '',
+        duration: '',
+        isPreview: false,
+        resources: '',
+        content: '',
+      });
     }
   }, [editingCourseId]);
 
+  const curriculumFromApi = (createdCurriculum as any[]) ?? [];
+  const curriculumKey = curriculumFromApi
+    .map(l => String((l as any)?._id ?? (l as any)?.id ?? ''))
+    .join('|');
+
   useEffect(() => {
-    setCurriculum(createdCurriculum as any[]);
-  }, [createdCurriculum]);
+    setCurriculum(prev => {
+      const prevKey = (prev ?? [])
+        .map(l => String((l as any)?._id ?? (l as any)?.id ?? ''))
+        .join('|');
+      if (prevKey === curriculumKey) return prev;
+      return curriculumFromApi;
+    });
+  }, [curriculumKey]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -243,6 +305,77 @@ export const InstructorCourseCreateScreen: React.FC = () => {
     setEditingLessonId(null);
   };
 
+  const openQuizSetup = async (lessonId: string) => {
+    const lesson = curriculum.find(l => l._id === lessonId);
+    setQuizModalLessonId(lessonId);
+    setLoadingQuiz(true);
+    setQuizForm({
+      title: (lesson?.title as string) || 'Quiz',
+      passingScore: 80,
+      questions: [],
+    });
+    try {
+      const q = await triggerGetQuizByLesson(lessonId).unwrap();
+      setQuizForm({
+        title: q.title || (lesson?.title as string) || 'Quiz',
+        passingScore: (q as any)?.passingScore ?? 80,
+        questions: ((q as any)?.questions || []).map((qn: any) => {
+          const opts = Array.isArray(qn.options)
+            ? [...qn.options, '', '', '', ''].slice(0, 4)
+            : ['', '', '', ''];
+          const correctVal = qn.correctAnswer ?? opts[0];
+          const correctIndex = Math.min(3, Math.max(0, opts.indexOf(String(correctVal))));
+          return {
+            questionText: qn.questionText || '',
+            questionCode: qn.questionCode ?? '',
+            options: opts,
+            correctIndex: correctIndex >= 0 ? correctIndex : 0,
+          };
+        }),
+      });
+    } catch (_e) {
+      // quiz chưa tồn tại => giữ form mặc định
+    } finally {
+      setLoadingQuiz(false);
+    }
+  };
+
+  const handleSaveQuiz = async () => {
+    if (!quizModalLessonId) return;
+    const mapped = quizForm.questions
+      .filter(q => q.questionText.trim())
+      .map(q => {
+        const opts = q.options.filter(o => o.trim()).length ? q.options : ['A', 'B', 'C', 'D'];
+        const correctIdx = Math.max(0, Math.min(q.correctIndex, opts.length - 1));
+        return {
+          questionText: q.questionText.trim(),
+          questionCode: (q.questionCode ?? '').trim(),
+          type: 'multiple-choice' as const,
+          options: opts,
+          correctAnswer: (opts[correctIdx] ?? opts[0] ?? '').trim() || opts[0],
+          points: 1,
+        };
+      });
+    if (mapped.length === 0) {
+      Alert.alert('Lỗi', 'Thêm ít nhất một câu hỏi trước khi lưu.');
+      return;
+    }
+    try {
+      await createOrUpdateQuiz({
+        lessonId: quizModalLessonId,
+        payload: {
+          title: quizForm.title || 'Quiz',
+          passingScore: quizForm.passingScore,
+          questions: mapped as any,
+        },
+      }).unwrap();
+      Alert.alert('Thành công', 'Đã lưu câu hỏi quiz.');
+      setQuizModalLessonId(null);
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể lưu quiz.');
+    }
+  };
+
   const handleCreateLesson = async () => {
     if (!createdCourseId) return;
     if (!lessonForm.title.trim()) {
@@ -283,6 +416,9 @@ export const InstructorCourseCreateScreen: React.FC = () => {
         }).unwrap();
         setCurriculum(prev => [...prev, created as any]);
         Alert.alert('Thành công', 'Đã thêm bài học.');
+        if ((created as any)?.type === 'quiz' && (created as any)?._id) {
+          void openQuizSetup(String((created as any)._id));
+        }
       }
       resetLessonForm();
       setLessonModalVisible(false);
@@ -337,7 +473,18 @@ export const InstructorCourseCreateScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isEditing ? 'Chỉnh sửa khóa học' : 'Tạo khóa học mới'}</Text>
+      <View style={styles.headerRow}>
+        {isEditing && (
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.title}>{isEditing ? 'Chỉnh sửa khóa học' : 'Tạo khóa học mới'}</Text>
+      </View>
       <Text style={styles.subtitle}>
         {isEditing
           ? 'Cập nhật thông tin khóa học và quản lý curriculum.'
@@ -468,7 +615,7 @@ export const InstructorCourseCreateScreen: React.FC = () => {
             loading={updatingCourse}
             disabled={updatingCourse}
             variant="outline"
-            style={[styles.submitButton, { marginTop: SPACING[2] }]}
+            style={styles.submitButtonTight}
           />
         )}
 
@@ -488,7 +635,7 @@ export const InstructorCourseCreateScreen: React.FC = () => {
                 }}
               />
             </View>
-            {createdCurriculum.length === 0 ? (
+            {curriculum.length === 0 ? (
               <Text style={styles.nextCardDescription}>
                 Chưa có bài học. Nhấn &quot;Thêm bài học&quot; để tạo.
               </Text>
@@ -496,10 +643,10 @@ export const InstructorCourseCreateScreen: React.FC = () => {
               <View style={styles.lessonList}>
                 {curriculum.map((lesson: any, index: number) => {
                   const canMoveUp = index > 0;
-                  const canMoveDown = index < createdCurriculum.length - 1;
+                  const canMoveDown = index < curriculum.length - 1;
                   const handleMove = async (direction: 'up' | 'down') => {
                     if (!createdCourseId) return;
-                    const copy = [...createdCurriculum];
+                    const copy = [...curriculum];
                     const targetIndex = direction === 'up' ? index - 1 : index + 1;
                     const tmp = copy[targetIndex];
                     copy[targetIndex] = copy[index];
@@ -564,11 +711,19 @@ export const InstructorCourseCreateScreen: React.FC = () => {
                             {lesson.type === 'video'
                               ? '📹 video'
                               : lesson.type === 'text'
-                              ? '📄 text'
-                              : '❓ quiz'}
+                                ? '📄 text'
+                                : '❓ quiz'}
                           </Text>
                         </View>
                         <View style={styles.lessonActions}>
+                          {lesson.type === 'quiz' && (
+                            <TouchableOpacity
+                              style={styles.iconButton}
+                              onPress={() => openQuizSetup(String(lesson._id))}
+                            >
+                              <Text style={styles.iconButtonText}>⚙️</Text>
+                            </TouchableOpacity>
+                          )}
                           <TouchableOpacity
                             style={[styles.iconButton, !canMoveUp && styles.iconButtonDisabled]}
                             onPress={() => canMoveUp && handleMove('up')}
@@ -684,7 +839,8 @@ export const InstructorCourseCreateScreen: React.FC = () => {
                 onPress={() => {
                   setLessonModalVisible(false);
                 }}
-                style={{ flex: 1, marginRight: SPACING[3] }}
+                style={[styles.quizFooterBtn, styles.quizFooterBtnLeft]}
+                textStyle={styles.quizFooterBtnTextOutline}
               />
               <Button
                 title={creatingLesson ? 'Đang lưu...' : 'Thêm bài học'}
@@ -692,7 +848,190 @@ export const InstructorCourseCreateScreen: React.FC = () => {
                 loading={creatingLesson}
                 disabled={creatingLesson}
                 size="sm"
-                style={{ flex: 1 }}
+                style={styles.quizFooterBtn}
+                textStyle={styles.quizFooterBtnTextPrimary}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!quizModalLessonId}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setQuizModalLessonId(null)}
+      >
+        <View style={styles.lessonModalOverlay}>
+          <View style={styles.lessonModal}>
+            <View style={styles.lessonModalHeader}>
+              <Text style={styles.lessonModalTitle}>Thiết lập Quiz</Text>
+              <TouchableOpacity onPress={() => setQuizModalLessonId(null)}>
+                <Text style={styles.lessonModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={{ maxHeight: Platform.OS === 'web' ? 520 : 600 }}
+              contentContainerStyle={{ paddingBottom: SPACING[4] }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {loadingQuiz ? (
+                <View style={{ paddingVertical: SPACING[6] }}>
+                  <ActivityIndicator color={COLORS.primary} />
+                </View>
+              ) : (
+                <>
+                  <Input
+                    label="Tiêu đề quiz"
+                    value={quizForm.title}
+                    onChangeText={v => setQuizForm(f => ({ ...f, title: v }))}
+                    placeholder="Quiz"
+                  />
+
+                  <Input
+                    label="Điểm đạt (%)"
+                    value={String(quizForm.passingScore)}
+                    onChangeText={v =>
+                      setQuizForm(f => ({
+                        ...f,
+                        passingScore: parseInt(v.replace(/[^0-9]/g, ''), 10) || 0,
+                      }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="80"
+                  />
+
+                  <View style={{ marginTop: SPACING[4], marginBottom: SPACING[2] }}>
+                    <Text style={styles.label}>Câu hỏi</Text>
+                    <Text style={[styles.helperText, { color: COLORS.gray100 }]}>
+                      Mỗi câu hỏi gồm 4 lựa chọn và 1 đáp án đúng.
+                    </Text>
+                  </View>
+
+                  {quizForm.questions.map((q, qIdx) => (
+                    <View key={qIdx} style={styles.quizQuestionCard}>
+                      <View style={styles.quizQuestionHeader}>
+                        <Text style={styles.quizQuestionTitle}>Câu {qIdx + 1}</Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setQuizForm(f => ({
+                              ...f,
+                              questions: f.questions.filter((_, i) => i !== qIdx),
+                            }))
+                          }
+                        >
+                          <Text style={styles.linkDanger}>Xóa</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Input
+                        label="Nội dung câu hỏi *"
+                        value={q.questionText}
+                        onChangeText={v =>
+                          setQuizForm(f => {
+                            const next = [...f.questions];
+                            next[qIdx] = { ...next[qIdx], questionText: v };
+                            return { ...f, questions: next };
+                          })
+                        }
+                        placeholder="Nhập câu hỏi..."
+                      />
+
+                      <Input
+                        label="Đoạn code (tuỳ chọn)"
+                        value={q.questionCode}
+                        onChangeText={v =>
+                          setQuizForm(f => {
+                            const next = [...f.questions];
+                            next[qIdx] = { ...next[qIdx], questionCode: v };
+                            return { ...f, questions: next };
+                          })
+                        }
+                        placeholder="VD: const x = 1;"
+                        multiline
+                      />
+
+                      <Text style={styles.label}>Lựa chọn</Text>
+                      {q.options.map((opt, optIdx) => (
+                        <Input
+                          key={optIdx}
+                          label={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
+                          value={opt}
+                          onChangeText={v =>
+                            setQuizForm(f => {
+                              const next = [...f.questions];
+                              const nextQ = { ...next[qIdx] };
+                              const nextOpts = [...nextQ.options];
+                              nextOpts[optIdx] = v;
+                              nextQ.options = nextOpts;
+                              next[qIdx] = nextQ;
+                              return { ...f, questions: next };
+                            })
+                          }
+                          placeholder="Nhập đáp án..."
+                        />
+                      ))}
+
+                      <Text style={styles.label}>Đáp án đúng</Text>
+                      <Select
+                        value={String(q.correctIndex)}
+                        onChange={val =>
+                          setQuizForm(f => {
+                            const next = [...f.questions];
+                            next[qIdx] = {
+                              ...next[qIdx],
+                              correctIndex: parseInt(String(val), 10) || 0,
+                            };
+                            return { ...f, questions: next };
+                          })
+                        }
+                        options={[
+                          { label: 'A', value: '0' },
+                          { label: 'B', value: '1' },
+                          { label: 'C', value: '2' },
+                          { label: 'D', value: '3' },
+                        ]}
+                      />
+                    </View>
+                  ))}
+
+                  <Button
+                    title="Thêm câu hỏi"
+                    variant="outline"
+                    size="sm"
+                    onPress={() =>
+                      setQuizForm(f => ({
+                        ...f,
+                        questions: [
+                          ...f.questions,
+                          { questionText: '', questionCode: '', options: ['', '', '', ''], correctIndex: 0 },
+                        ],
+                      }))
+                    }
+                    style={{ marginTop: SPACING[2] }}
+                  />
+                </>
+              )}
+            </ScrollView>
+
+            <View style={styles.lessonModalFooter}>
+              <Button
+                title="Đóng"
+                variant="outline"
+                size="sm"
+                onPress={() => setQuizModalLessonId(null)}
+                style={[styles.quizFooterBtn, styles.quizFooterBtnLeft]}
+                textStyle={styles.quizFooterBtnTextOutline}
+              />
+              <Button
+                title={savingQuiz ? 'Đang lưu...' : 'Lưu quiz'}
+                onPress={handleSaveQuiz}
+                loading={savingQuiz}
+                disabled={savingQuiz || loadingQuiz}
+                size="sm"
+                style={styles.quizFooterBtn}
+                textStyle={styles.quizFooterBtnTextPrimary}
               />
             </View>
           </View>
@@ -712,6 +1051,22 @@ const styles = StyleSheet.create({
     paddingTop: SPACING[8],
     paddingBottom: SPACING[8],
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING[2],
+    gap: SPACING[3],
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     ...TYPOGRAPHY.h3,
     color: COLORS.textPrimary,
@@ -728,6 +1083,29 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: SPACING[2],
   },
+  quizQuestionCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: SPACING[4],
+    marginBottom: SPACING[4],
+    backgroundColor: COLORS.surface,
+  },
+  quizQuestionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING[2],
+  },
+  quizQuestionTitle: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.textPrimary,
+  },
+  linkDanger: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.error,
+    fontWeight: '600',
+  },
   helperText: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
@@ -736,9 +1114,12 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: SPACING[4],
   },
+  submitButtonTight: {
+    marginTop: SPACING[2],
+  },
   thumbnailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     marginBottom: SPACING[4],
   },
   thumbnailPreview: {
@@ -861,11 +1242,28 @@ const styles = StyleSheet.create({
   },
   lessonModalClose: {
     ...TYPOGRAPHY.h4,
-    color: COLORS.textSecondary,
+    color: COLORS.gray100,
   },
   lessonModalFooter: {
     flexDirection: 'row',
     marginTop: SPACING[4],
+  },
+  quizFooterBtn: {
+    flex: 1,
+    minHeight: 44,
+  },
+  quizFooterBtnLeft: {
+    marginRight: SPACING[3],
+  },
+  quizFooterBtnTextOutline: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  quizFooterBtnTextPrimary: {
+    color: COLORS.white,
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 

@@ -35,8 +35,10 @@ export const ProfileScreen = () => {
   const token = useAppSelector(s => s.auth.token);
   const currentUser = useAppSelector(s => s.auth.user);
   const isAdmin = currentUser?.role === 'admin';
+  const isInstructor = currentUser?.role === 'instructor';
+  const canSeeLearnerSections = !isAdmin && !isInstructor;
   const { data: certificates, isLoading: loadingCertificates } = useGetMyCertificatesQuery(undefined, {
-    skip: !token || isAdmin,
+    skip: !token || !canSeeLearnerSections,
   });
   const {
     data: user,
@@ -265,7 +267,7 @@ export const ProfileScreen = () => {
           containerStyle={styles.input}
         />
 
-        {!isAdmin && (
+        {canSeeLearnerSections && (
           <TouchableOpacity
             style={[styles.menuRow, styles.paymentHistoryRow]}
             onPress={() => (navigation as any).navigate(ROUTES.PAYMENT_HISTORY as never)}
@@ -276,15 +278,17 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         )}
 
-        
-
-        {!isAdmin && (
+        {canSeeLearnerSections && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Chứng chỉ của bạn</Text>
             </View>
             {loadingCertificates ? (
-              <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: SPACING[4] }} />
+              <ActivityIndicator
+                size="small"
+                color={COLORS.primary}
+                style={{ marginBottom: SPACING[4] }}
+              />
             ) : !certificates || certificates.length === 0 ? (
               <Text style={styles.emptyCertificatesText}>Bạn chưa có chứng chỉ nào.</Text>
             ) : (
@@ -296,8 +300,7 @@ export const ProfileScreen = () => {
                   <View key={(cert as any)._id} style={styles.certificateCard}>
                     <Text style={styles.certificateCourseTitle}>{courseTitle}</Text>
                     <Text style={styles.certificateDate}>
-                      Cấp ngày:{' '}
-                      {issuedAt ? new Date(issuedAt).toLocaleDateString('vi-VN') : '—'}
+                      Cấp ngày: {issuedAt ? new Date(issuedAt).toLocaleDateString('vi-VN') : '—'}
                     </Text>
                   </View>
                 );

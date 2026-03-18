@@ -27,6 +27,7 @@ export type BottomTabParamList = {
   [ROUTES.ADMIN_REVIEWS]: undefined;
   [ROUTES.INSTRUCTOR_DASHBOARD]: undefined;
   [ROUTES.INSTRUCTOR_CREATE_COURSE]: undefined;
+  [ROUTES.INSTRUCTOR_EDIT_COURSE]: { courseId: string };
   [ROUTES.INSTRUCTOR_ANALYTICS]: undefined;
 };
 
@@ -52,6 +53,7 @@ export type AppStackParamList = {
   [ROUTES.INSTRUCTOR_ANALYTICS]: undefined;
   [ROUTES.INSTRUCTOR_DISCUSSIONS]: undefined;
   [ROUTES.INSTRUCTOR_CREATE_COURSE]: undefined;
+  [ROUTES.INSTRUCTOR_EDIT_COURSE]: { courseId: string };
 };
 
 // Root Navigator (Auth vs App)

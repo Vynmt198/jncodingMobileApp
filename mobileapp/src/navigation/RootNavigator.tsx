@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
@@ -7,11 +7,13 @@ import { RootStackParamList } from '@/types/navigation.types';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { linking } from './linking';
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, View, TouchableOpacity } from 'react-native';
 import { COLORS } from '@/constants/theme';
 import { logout, setPendingAuthRoute } from '@/store/slices/authSlice';
 import { removeSecureItem } from '@/utils/secureStorage';
 import { TOKEN_KEY } from '@/api/axiosInstance';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -27,6 +29,9 @@ export const RootNavigator = () => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(state => state.auth.isAuthenticated);
   const handledInitialUrl = useRef(false);
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const insets = useSafeAreaInsets();
+  const [canGoBack, setCanGoBack] = useState(false);
 
   // Khi đã đăng nhập mà mở myapp://login hoặc myapp://register → logout và mở đúng màn Auth
   useEffect(() => {
@@ -57,8 +62,16 @@ export const RootNavigator = () => {
     return () => sub.remove();
   }, [dispatch, isAuthenticated]);
 
+  const handleStateChange = useCallback(() => {
+    try {
+      setCanGoBack(!!navigationRef.current?.canGoBack());
+    } catch {
+      setCanGoBack(false);
+    }
+  }, [navigationRef]);
+
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking} onStateChange={handleStateChange} onReady={handleStateChange}>
       <RootStack.Navigator screenOptions={{ headerShown: false, contentStyle: styles.content }}>
         {isAuthenticated ? (
           <RootStack.Screen name="App" component={AppNavigator} />
@@ -66,6 +79,23 @@ export const RootNavigator = () => {
           <RootStack.Screen name="Auth" component={AuthNavigator} />
         )}
       </RootStack.Navigator>
+
+      {canGoBack && (
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Quay lại"
+            activeOpacity={0.85}
+            onPress={() => navigationRef.current?.goBack()}
+            style={[
+              styles.backButton,
+              { top: Math.max(insets.top, 10) + 6 },
+            ]}
+          >
+            <Ionicons name="chevron-back" size={20} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      )}
     </NavigationContainer>
   );
 };
@@ -74,5 +104,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  backButton: {
+    position: 'absolute',
+    right: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(19, 24, 39, 0.92)',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
   },
 });

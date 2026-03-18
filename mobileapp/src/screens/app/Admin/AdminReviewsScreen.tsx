@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Card } from '@/components/ui';
 import type { AppScreenProps } from '@/types/navigation.types';
@@ -48,7 +49,7 @@ export const AdminReviewsScreen: React.FC<ScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Text style={styles.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={22} color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Đánh giá</Text>
       </View>
@@ -111,16 +112,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING[2],
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 22, color: COLORS.textPrimary, fontWeight: '700', marginTop: -2 },
   headerTitle: { ...TYPOGRAPHY.h3, color: COLORS.textPrimary, fontWeight: '700', flex: 1 },
   subtitle: { ...TYPOGRAPHY.bodySmall, color: COLORS.textSecondary, marginTop: 4 },
   listContent: { paddingVertical: SPACING[4], paddingBottom: SPACING[10] },

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,11 @@ import {
   RefreshControl,
   Pressable,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { useDeleteCourseMutation, useGetMyCoursesQuery, useUpdateCourseMutation } from '@/store/api/instructorApi';
 import { ROUTES } from '@/constants/routes';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from '@/store/hooks';
 import { API_BASE_URL } from '@/api/axiosInstance';
@@ -37,6 +37,12 @@ const STATUS_LABELS: Record<string, string> = {
   active: 'Đã duyệt',
   rejected: 'Bị từ chối',
   disabled: 'Ẩn',
+};
+
+const LEVEL_LABELS: Record<string, string> = {
+  beginner: 'Cơ bản',
+  intermediate: 'Trung cấp',
+  advanced: 'Nâng cao',
 };
 
 const PLACEHOLDER_THUMB = 'https://placehold.co/100x100?text=Course';
@@ -76,12 +82,13 @@ const InstructorCourseRow: React.FC<CourseRowProps> = ({
   onPressSubmit,
 }) => {
   const thumb = resolveThumbnailUri(item.thumbnail);
-  const level = item.level ?? '—';
+  const rawLevel = item.level ?? 'beginner';
+  const levelLabel = LEVEL_LABELS[rawLevel] || rawLevel;
   const status = item.status ?? '—';
   const statusLabel = STATUS_LABELS[String(status)] ?? status;
   const enrollments = item.enrollmentCount ?? 0;
 
-  const canSubmit = status === 'draft' || status === 'rejected';
+  const canSubmit = status === 'draft';
   const canEdit = status !== 'rejected';
   const canDeleteByStatus = status === 'draft' || status === 'pending' || status === 'rejected';
   const canDelete = canDeleteByStatus || (status === 'disabled' && role === 'admin');
@@ -98,29 +105,23 @@ const InstructorCourseRow: React.FC<CourseRowProps> = ({
             Trạng thái: <Text style={styles.courseMetaHighlight}>{statusLabel}</Text>
           </Text>
           <Text style={styles.courseMeta} numberOfLines={1}>
-            Cấp độ: <Text style={styles.courseMetaHighlight}>{level}</Text> • Học viên:{' '}
+            Cấp độ: <Text style={styles.courseMetaHighlight}>{levelLabel}</Text> • Học viên:{' '}
             <Text style={styles.courseMetaHighlight}>{enrollments}</Text>
           </Text>
         </View>
       </Pressable>
       <View style={styles.courseActions}>
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            canSubmit && styles.actionButtonSubmit,
-            !canSubmit && { opacity: 0.35 },
-          ]}
-          activeOpacity={canSubmit ? 0.8 : 1}
-          onPress={canSubmit && onPressSubmit ? onPressSubmit : undefined}
-          accessibilityLabel="Gửi duyệt"
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="send"
-            size={18}
-            color={canSubmit ? COLORS.primary : COLORS.textSecondary}
-          />
-        </TouchableOpacity>
+        {canSubmit ? (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonSubmit]}
+            activeOpacity={0.8}
+            onPress={onPressSubmit}
+            accessibilityLabel="Gửi duyệt"
+            accessibilityRole="button"
+          >
+            <Ionicons name="send" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           style={[styles.actionButton, !canEdit && { opacity: 0.35 }]}
           activeOpacity={canEdit ? 0.8 : 1}
@@ -128,13 +129,15 @@ const InstructorCourseRow: React.FC<CourseRowProps> = ({
         >
           <Ionicons name="create-outline" size={18} color={COLORS.primary} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, !canDelete && { opacity: 0.35 }]}
-          activeOpacity={canDelete ? 0.8 : 1}
-          onPress={canDelete ? onPressDelete : undefined}
-        >
-          <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-        </TouchableOpacity>
+        {canDelete ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            activeOpacity={0.8}
+            onPress={onPressDelete}
+          >
+            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -158,16 +161,32 @@ export const InstructorMyCoursesScreen: React.FC = () => {
   const [updateCourse] = useUpdateCourseMutation();
   const [searchQuery, setSearchQuery] = React.useState('');
 
+  // Reset state on focus
+  useFocusEffect(
+    useCallback(() => {
+      setSearchQuery('');
+      setStatusFilter('all');
+      setPage(1);
+    }, []),
+  );
+
   const [courses, setCourses] = React.useState<InstructorCourseItem[]>([]);
   const pagination = data?.pagination;
+  const pageCourses = (data?.courses ?? []) as InstructorCourseItem[];
+  // Tránh vòng lặp render trên web khi data.courses có thể đổi reference liên tục
+  // nhưng nội dung không đổi (gây useEffect chạy lại và setState mãi).
+  const pageCoursesKey = pageCourses.map(c => c._id).join('|');
 
   React.useEffect(() => {
-    if (!data?.courses) return;
+    if (!pageCourses.length) {
+      if (page === 1) setCourses([]);
+      return;
+    }
     setCourses(prev => {
       const next = page === 1 ? [] : prev;
       const seen = new Set(next.map(c => c._id));
       const merged = [...next];
-      for (const c of data.courses as InstructorCourseItem[]) {
+      for (const c of pageCourses) {
         if (!seen.has(c._id)) {
           seen.add(c._id);
           merged.push(c);
@@ -175,18 +194,18 @@ export const InstructorMyCoursesScreen: React.FC = () => {
       }
       return merged;
     });
-  }, [data?.courses, page]);
+  }, [pageCoursesKey, page]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredCourses =
     !normalizedQuery.length
       ? courses
       : courses.filter(c =>
-          (c.title || '')
-            .toString()
-            .toLowerCase()
-            .includes(normalizedQuery),
-        );
+        (c.title || '')
+          .toString()
+          .toLowerCase()
+          .includes(normalizedQuery),
+      );
   const displayEmail = user?.email ?? 'instructor@example.com';
   const avatarInitial =
     (user?.fullName && user.fullName.trim().charAt(0)) ||
@@ -210,47 +229,19 @@ export const InstructorMyCoursesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryLight]}
-        style={styles.headerCard}
-      >
-        <View style={styles.headerTop}>
-          <View style={styles.userRow}>
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{avatarInitial.toUpperCase()}</Text>
-            </View>
-            <View style={styles.headerTextWrap}>
-              <View style={styles.headerTitleRow}>
-                <Text style={styles.headerHello}>
-                  Hello,
-                  {' '}
-                  <Text style={styles.headerEmail}>{displayEmail}</Text>
-                </Text>
-                <View style={styles.vipBadge}>
-                  <Text style={styles.vipLabel}>VIP</Text>
-                </View>
-              </View>
-              <Text style={styles.headerSubtitle}>Quản lý các khóa bạn đang giảng dạy</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.bellButton} activeOpacity={0.8}>
-            <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
-            <View style={styles.bellDot} />
-          </TouchableOpacity>
-        </View>
-
+      <View style={styles.topSearchSection}>
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color="rgba(255,255,255,0.7)" />
+          <Ionicons name="search-outline" size={18} color={COLORS.gray400} />
           <TextInput
             style={styles.searchPlaceholder}
             placeholder="Tìm trong các khóa tôi dạy..."
-            placeholderTextColor="rgba(255,255,255,0.7)"
+            placeholderTextColor={COLORS.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
           />
         </View>
-      </LinearGradient>
+      </View>
 
       <Text style={styles.sectionTitle}>Khóa tôi dạy</Text>
       <Text style={styles.subtitle}>Quản lý các khóa học bạn đang giảng dạy.</Text>
@@ -303,7 +294,7 @@ export const InstructorMyCoursesScreen: React.FC = () => {
           }
           renderItem={({ item }) => {
             const handleEditCourse = () => {
-              navigation.navigate(ROUTES.INSTRUCTOR_CREATE_COURSE as never, {
+              navigation.navigate(ROUTES.INSTRUCTOR_EDIT_COURSE as never, {
                 courseId: item._id,
               });
             };
@@ -320,9 +311,8 @@ export const InstructorMyCoursesScreen: React.FC = () => {
                     onPress: async () => {
                       try {
                         await deleteCourse(item._id).unwrap();
-                        setPage(1);
-                        setCourses([]);
-                        await refetch();
+                        // Không reset trang/filter; chỉ remove item khỏi list hiện tại
+                        setCourses(prev => prev.filter(c => c._id !== item._id));
                       } catch (e: any) {
                         Alert.alert(
                           'Lỗi',
@@ -341,9 +331,10 @@ export const InstructorMyCoursesScreen: React.FC = () => {
                   courseId: item._id,
                   payload: { submitForReview: true },
                 }).unwrap();
-                setPage(1);
-                setCourses([]);
-                refetch();
+                // Không reset trang/filter; cập nhật trạng thái item tại chỗ
+                setCourses(prev =>
+                  prev.map(c => (c._id === item._id ? { ...c, status: 'pending' } : c)),
+                );
                 Alert.alert('Thành công', 'Đã gửi khóa học chờ admin duyệt. Trạng thái: Chờ duyệt.');
               } catch (e: any) {
                 const msg =
@@ -407,7 +398,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     paddingHorizontal: SPACING[6],
-    paddingTop: 0,
+    paddingTop: Platform.OS === 'ios' ? 56 : 40,
   },
   subtitle: {
     ...TYPOGRAPHY.bodySmall,
@@ -424,11 +415,11 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: COLORS.surfaceSecondary,
-    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
   },
   filterChipActive: {
@@ -437,11 +428,12 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: COLORS.gray600,
     fontWeight: '700',
+    letterSpacing: 0.5,
   },
   filterChipTextActive: {
-    color: COLORS.textInverse,
+    color: COLORS.secondary,
   },
   headerCard: {
     borderBottomLeftRadius: 24,
@@ -534,21 +526,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.textInverse,
   },
+  topSearchSection: {
+    marginBottom: SPACING[4],
+  },
   searchBar: {
-    marginTop: SPACING[3],
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     paddingHorizontal: SPACING[4],
     height: 48,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
   },
   searchPlaceholder: {
     flex: 1,
-    ...TYPOGRAPHY.caption,
-    color: 'rgba(255,255,255,0.9)',
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.textPrimary,
     marginLeft: SPACING[2],
     paddingVertical: Platform.OS === 'web' ? 10 : 0,
   },

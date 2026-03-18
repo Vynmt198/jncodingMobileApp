@@ -1,6 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseApi';
 import { API_ENDPOINTS } from '@/api/endpoints';
+import type { ApiResponse, Quiz, QuizQuestion } from '@/types/api.types';
 
 interface InstructorDashboardStats {
   totalStudents: number;
@@ -21,6 +22,18 @@ interface InstructorAnalyticsResponse {
   averageRating: number;
   totalReviews: number;
   topCourses: InstructorAnalyticsTopCourse[];
+}
+
+interface CourseAnalyticsResponse {
+  totalEnrollments: number;
+  totalTimeSpentSeconds: number;
+  totalCompletedLessons: number;
+  totalLessons: number;
+  expectedTimeSeconds: number;
+  completionRatePercent: number;
+  timeSpentRatePercent: number;
+  courseId: string;
+  courseTitle: string;
 }
 
 interface InstructorDiscussionSummaryItem {
@@ -58,7 +71,7 @@ interface InstructorMyCoursesResponse {
 export const instructorApi = createApi({
   reducerPath: 'instructorApi',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['InstructorCourses'],
+  tagTypes: ['InstructorCourses', 'InstructorQuiz'],
   endpoints: builder => ({
     getDashboardStats: builder.query<InstructorDashboardStats, void>({
       query: () => ({
@@ -68,12 +81,13 @@ export const instructorApi = createApi({
       transformResponse: (response: { success: boolean; data: InstructorDashboardStats }) =>
         response.data,
     }),
-    getAnalytics: builder.query<InstructorAnalyticsResponse, void>({
-      query: () => ({
-        url: API_ENDPOINTS.INSTRUCTOR.ANALYTICS,
+    // Per-course analytics (backend supported)
+    getCourseAnalytics: builder.query<CourseAnalyticsResponse, string>({
+      query: (courseId) => ({
+        url: API_ENDPOINTS.INSTRUCTOR.COURSE_ANALYTICS(courseId),
         method: 'GET',
       }),
-      transformResponse: (response: { success: boolean; data: InstructorAnalyticsResponse }) =>
+      transformResponse: (response: { success: boolean; data: CourseAnalyticsResponse }) =>
         response.data,
     }),
     getDiscussionSummary: builder.query<InstructorDiscussionSummaryResponse, void>({
@@ -132,15 +146,72 @@ export const instructorApi = createApi({
       }),
       invalidatesTags: ['InstructorCourses'],
     }),
+
+    /** GET /api/instructor/lessons/:lessonId/quiz — lấy quiz của lesson (instructor) */
+    getQuizByLessonId: builder.query<Quiz, string>({
+      query: lessonId => ({
+        url: API_ENDPOINTS.INSTRUCTOR.QUIZ_BY_LESSON(lessonId),
+        method: 'GET',
+      }),
+      providesTags: (_res, _err, lessonId) => [{ type: 'InstructorQuiz', id: lessonId }],
+      transformResponse: (response: ApiResponse<Quiz>) => response.data!,
+    }),
+
+    /** POST /api/instructor/lessons/:lessonId/quiz — tạo/ghi đè quiz của lesson (instructor) */
+    createOrUpdateQuiz: builder.mutation<
+      Quiz,
+      {
+        lessonId: string;
+        payload: {
+          title?: string;
+          questions?: QuizQuestion[];
+          passingScore?: number;
+          timeLimit?: number;
+        };
+      }
+    >({
+      query: ({ lessonId, payload }) => ({
+        url: API_ENDPOINTS.INSTRUCTOR.QUIZ_BY_LESSON(lessonId),
+        method: 'POST',
+        data: payload,
+      }),
+      invalidatesTags: (_res, _err, { lessonId }) => [{ type: 'InstructorQuiz', id: lessonId }],
+      transformResponse: (response: ApiResponse<Quiz>) => response.data!,
+    }),
+
+    /** PUT /api/instructor/quizzes/:quizId — update quiz (instructor) */
+    updateQuiz: builder.mutation<
+      Quiz,
+      {
+        quizId: string;
+        payload: {
+          title?: string;
+          questions?: QuizQuestion[];
+          passingScore?: number;
+          timeLimit?: number;
+        };
+      }
+    >({
+      query: ({ quizId, payload }) => ({
+        url: API_ENDPOINTS.INSTRUCTOR.QUIZ_UPDATE(quizId),
+        method: 'PUT',
+        data: payload,
+      }),
+      transformResponse: (response: ApiResponse<Quiz>) => response.data!,
+    }),
   }),
 });
 
 export const {
   useGetDashboardStatsQuery,
-  useGetAnalyticsQuery,
+  useGetCourseAnalyticsQuery,
   useGetDiscussionSummaryQuery,
   useGetMyCoursesQuery,
   useUpdateCourseMutation,
   useDeleteCourseMutation,
+  useGetQuizByLessonIdQuery,
+  useLazyGetQuizByLessonIdQuery,
+  useCreateOrUpdateQuizMutation,
+  useUpdateQuizMutation,
 } = instructorApi;
 
