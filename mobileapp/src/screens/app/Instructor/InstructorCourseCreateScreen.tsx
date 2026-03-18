@@ -33,8 +33,6 @@ import {
   useLazyGetQuizByLessonIdQuery,
   useUpdateCourseMutation,
 } from '@/store/api/instructorApi';
-import axiosInstance from '@/api/axiosInstance';
-import { API_ENDPOINTS } from '@/api/endpoints';
 
 type Category = {
   _id: string;
