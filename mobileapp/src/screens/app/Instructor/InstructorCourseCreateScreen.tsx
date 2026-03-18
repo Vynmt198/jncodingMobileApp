@@ -762,7 +762,9 @@ export const InstructorCourseCreateScreen: React.FC = () => {
         <View style={styles.lessonModalOverlay}>
           <View style={styles.lessonModal}>
             <View style={styles.lessonModalHeader}>
-              <Text style={styles.lessonModalTitle}>Thêm bài học</Text>
+              <Text style={styles.lessonModalTitle}>
+                {editingLessonId ? 'Chỉnh sửa bài học' : 'Thêm bài học'}
+              </Text>
               <TouchableOpacity onPress={() => setLessonModalVisible(false)}>
                 <Text style={styles.lessonModalClose}>✕</Text>
               </TouchableOpacity>
@@ -841,7 +843,9 @@ export const InstructorCourseCreateScreen: React.FC = () => {
                 textStyle={styles.quizFooterBtnTextOutline}
               />
               <Button
-                title={creatingLesson ? 'Đang lưu...' : 'Thêm bài học'}
+                title={
+                  creatingLesson ? 'Đang lưu...' : editingLessonId ? 'Lưu thay đổi' : 'Thêm bài học'
+                }
                 onPress={handleCreateLesson}
                 loading={creatingLesson}
                 disabled={creatingLesson}
