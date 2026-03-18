@@ -36,7 +36,8 @@ type Nav = NativeStackNavigationProp<AppStackParamList, typeof ROUTES.COURSE_DET
 export const CourseDetailScreen = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProp<AppStackParamList, typeof ROUTES.COURSE_DETAIL>>();
-  const courseId = (route.params?.courseId ?? (route.params as { id?: string })?.id ?? '') as string;
+  const courseIdRaw = (route.params?.courseId ?? (route.params as { id?: string })?.id ?? '') as string;
+  const courseId = courseIdRaw === 'undefined' ? '' : courseIdRaw;
 
   const { data: courseData, isLoading: loadingCourse, error: courseError } = useGetCourseByIdQuery(courseId, {
     skip: !courseId,
@@ -330,7 +331,7 @@ export const CourseDetailScreen = () => {
                     color={isExpanded ? COLORS.secondary : COLORS.gray400} 
                   />
                   <Text style={[styles.accordionTitle, isExpanded && styles.accordionTitleActive]}>
-                    {section.title}
+                    {section.title.toUpperCase()}
                   </Text>
                 </View>
                 <Text style={styles.sectionMeta}>{section.lessons.length} bài học</Text>
@@ -616,12 +617,13 @@ export const CourseDetailScreen = () => {
           >
             <LinearGradient
               colors={[COLORS.secondary, COLORS.secondaryDark]}
-              style={[styles.enrollGradient, { pointerEvents: 'none' }]}
+              style={styles.enrollGradient}
+              pointerEvents="none"
             >
               {enrolling ? (
                 <ActivityIndicator size="small" color={COLORS.primaryDark} />
               ) : (
-                <Text style={[styles.enrollText, { pointerEvents: 'none' }]}>
+                <Text style={styles.enrollText}>
                   {isEnrolled ? 'Tiếp tục học' : price === 0 ? 'Đăng ký miễn phí' : 'Mua khóa học'}
                 </Text>
               )}
@@ -820,13 +822,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   accordionTitle: {
-    ...TYPOGRAPHY.label,
+    ...TYPOGRAPHY.bodyMedium,
     color: COLORS.textPrimary,
-    fontWeight: '700',
+    fontWeight: '800',
     marginLeft: SPACING[2],
+    letterSpacing: 0.5,
   },
   accordionTitleActive: {
-    color: COLORS.secondaryDark,
+    color: COLORS.secondary,
   },
   sectionMeta: {
     ...TYPOGRAPHY.caption,

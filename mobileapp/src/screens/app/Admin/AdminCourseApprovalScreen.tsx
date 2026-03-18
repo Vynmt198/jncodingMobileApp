@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '@/constants/theme';
 import { Button, Card, Modal } from '@/components/ui';
 import type { AppScreenProps } from '@/types/navigation.types';
@@ -203,7 +204,7 @@ export const AdminCourseApprovalScreen: React.FC<ScreenProps> = ({ navigation })
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Text style={styles.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={22} color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quản lý khóa học</Text>
       </View>
@@ -315,16 +316,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING[2],
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 22, color: COLORS.textPrimary, fontWeight: '700', marginTop: -2 },
   headerTitle: { ...TYPOGRAPHY.h3, color: COLORS.textPrimary, fontWeight: '700', flex: 1 },
   subtitle: { ...TYPOGRAPHY.bodySmall, color: COLORS.textSecondary, marginTop: 4 },
   filterRow: {
