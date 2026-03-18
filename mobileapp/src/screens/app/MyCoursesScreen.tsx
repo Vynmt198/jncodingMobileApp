@@ -17,6 +17,7 @@ import { useGetMyEnrollmentsQuery } from '@/store/api/enrollmentsApi';
 import { ROUTES } from '@/constants/routes';
 import type { AppStackParamList } from '@/types/navigation.types';
 import type { MyEnrollmentItem } from '@/types/api.types';
+import { useAppSelector } from '@/store/hooks';
 
 type FilterType = 'all' | 'in_progress' | 'completed';
 
@@ -29,8 +30,9 @@ const FILTERS: { key: FilterType; label: string }[] = [
 export const MyCoursesScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList, 'MainTabs'>>();
+  const token = useAppSelector(s => s.auth.token);
   const { data, isLoading, isError, refetch, isFetching } = useGetMyEnrollmentsQuery(undefined, {
-    skip: false,
+    skip: !token,
   });
   const [filter, setFilter] = useState<FilterType>('all');
 

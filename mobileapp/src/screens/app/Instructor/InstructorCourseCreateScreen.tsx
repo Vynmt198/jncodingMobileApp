@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/constants/theme';
 import { Input, Button, Select } from '@/components/ui';
+import axiosInstance from '@/api/axiosInstance';
+import { API_ENDPOINTS } from '@/api/endpoints';
 import {
   useCreateCourseMutation,
   useCreateLessonMutation,
@@ -31,8 +33,6 @@ type Category = {
   _id: string;
   name: string;
 };
-
-const API_URL = 'http://localhost:3000/api';
 
 export const InstructorCourseCreateScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -102,8 +102,8 @@ export const InstructorCourseCreateScreen: React.FC = () => {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true);
-        const res = await fetch(`${API_URL}/categories`);
-        const json = await res.json();
+        const res = await axiosInstance.get(API_ENDPOINTS.CATEGORIES.LIST);
+        const json = (res as any)?.data;
         if (json?.success && Array.isArray(json.data)) {
           setCategories(json.data);
         } else {
@@ -311,21 +311,18 @@ export const InstructorCourseCreateScreen: React.FC = () => {
 
       setUploadingThumbnail(true);
       const formData = new FormData();
-      formData.append('file', {
-        // @ts-ignore - React Native file type
+      // Backend expects field name "thumbnail"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      formData.append('thumbnail', {
         uri: result.assets[0].uri,
         name: 'thumbnail.jpg',
         type: 'image/jpeg',
-      });
+      } as any);
 
-      const response = await fetch(`${API_URL}/upload/thumbnail`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          // Let the browser/native set correct multipart boundary
-        } as any,
+      const response = await axiosInstance.post(API_ENDPOINTS.UPLOAD.THUMBNAIL, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const json = await response.json();
+      const json = (response as any)?.data;
       const url = json?.data?.url || json?.url;
       if (!url) {
         throw new Error('Không lấy được URL ảnh từ server');
